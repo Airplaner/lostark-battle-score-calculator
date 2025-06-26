@@ -1,0 +1,7 @@
+*.xml
+*.db
+.venv/
+__pycache__/
+uv.lock
+character.json
+.vscode/
