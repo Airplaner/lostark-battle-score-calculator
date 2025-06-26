@@ -114,3 +114,36 @@ class CharacterInformation:
     @property
     def arkpassive_leap(self) -> int:
         return self.arkpassive_points("도약")
+
+    def parse_arkpassive_points_description(self, str_in: str) -> tuple[int, int]:
+        """
+        ArkPassive.Points.Description인 "6랭크 25레벨" 문자열에서
+        랭크와 레벨을 파싱하여 반환합니다.
+        """
+        matches = re.match(r"(\d+)랭크\s(\d+)레벨", str_in)
+        if matches:
+            return int(matches.group(1)), int(matches.group(2))
+
+    @property
+    def karma_evolutionrank(self) -> int:
+        points = jmespath.search("ArkPassive.Points", self._data)
+        for point in points:
+            if point["Name"] == "진화":
+                rank, level = self.parse_arkpassive_points_description(
+                    point["Description"]
+                )
+                return rank
+
+        raise RuntimeError("진화 카르마 랭크를 찾을 수 없습니다.")
+
+    @property
+    def karma_leaplevel(self) -> int:
+        points = jmespath.search("ArkPassive.Points", self._data)
+        for point in points:
+            if point["Name"] == "도약":
+                rank, level = self.parse_arkpassive_points_description(
+                    point["Description"]
+                )
+                return level
+
+        raise RuntimeError("도약 카르마 레벨을 찾을 수 없습니다.")

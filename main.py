@@ -77,6 +77,8 @@ class BattlePointType(str, Enum):
     ARKPASSIVE_EVOLUTION = "arkpassive_evolution"
     ARKPASSIVE_ENLIGHTMENT = "arkpassive_enlightment"
     ARKPASSIVE_LEAP = "arkpassive_leap"
+    KARMA_EVOLUTIONRANK = "karma_evolutionrank"
+    KARMA_LEAPLEVEL = "karma_leaplevel"
     ...
 
 
@@ -89,7 +91,7 @@ class BattlePointCalculator:
         if self.verbose:
             if coeff is None:
                 coeff = 0
-            print(battle_point_type, (10000 + coeff) / 10000)
+            print(battle_point_type, f"{(10000 + coeff) / 10000}")
 
     def calc(self, char: CharacterInformation, *, verbose: bool = False) -> int:
         dict_battle_point = self.dict_battle_point
@@ -129,6 +131,18 @@ class BattlePointCalculator:
                     coeff = (
                         dict_battle_point[BattlePointType.ARKPASSIVE_ENLIGHTMENT]
                         * char.arkpassive_enlightment
+                    )
+
+                case BattlePointType.KARMA_EVOLUTIONRANK:
+                    coeff = (
+                        dict_battle_point[BattlePointType.KARMA_EVOLUTIONRANK]
+                        * char.karma_evolutionrank
+                    )
+
+                case BattlePointType.KARMA_LEAPLEVEL:
+                    coeff = (
+                        dict_battle_point[BattlePointType.KARMA_LEAPLEVEL]
+                        * char.karma_leaplevel
                     )
 
             if coeff is not None:
