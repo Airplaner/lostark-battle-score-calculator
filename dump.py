@@ -21,3 +21,27 @@ def dump_ability_json():
 
     with open("Ability.json", "w") as fp:
         json.dump(result_dict, fp, ensure_ascii=False)
+
+
+def dump_elixir_set():
+    """
+    엘릭서 세트 효과 이름을 id과 매핑하여 저장합니다. {'회심': 101}
+    """
+    with sqlite3.connect("EFTable_GameMsg.db") as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "ATTACH DATABASE 'EFTable_ItemElixirOptionSet.db' AS itemelixiroptionset"
+        )
+        result = cur.execute(
+            """SELECT DISTINCT i.PrimaryKey, m.MSG
+    FROM itemelixiroptionset as i JOIN GameMsg as m on i.SetName = m.KEY collate nocase"""
+        ).fetchall()
+
+    result_dict = {}
+    for idx, name in result:
+        result_dict[name] = idx
+    with open("ElixirSet.json", "w") as fp:
+        json.dump(result_dict, fp, ensure_ascii=False)
+
+
+dump_elixir_set()
