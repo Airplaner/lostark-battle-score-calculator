@@ -75,6 +75,8 @@ class BattlePointType(str, Enum):
     LEVEL = "level"
     WEAPON_QUALITY = "weapon_quality"
     ARKPASSIVE_EVOLUTION = "arkpassive_evolution"
+    ARKPASSIVE_ENLIGHTMENT = "arkpassive_enlightment"
+    ARKPASSIVE_LEAP = "arkpassive_leap"
     ...
 
 
@@ -115,6 +117,18 @@ class BattlePointCalculator:
                     coeff = (
                         dict_battle_point[BattlePointType.ARKPASSIVE_EVOLUTION]
                         * char.arkpassive_evolution
+                    )
+
+                case BattlePointType.ARKPASSIVE_ENLIGHTMENT:
+                    coeff = (
+                        dict_battle_point[BattlePointType.ARKPASSIVE_ENLIGHTMENT]
+                        * char.arkpassive_enlightment
+                    )
+
+                case BattlePointType.ARKPASSIVE_LEAP:
+                    coeff = (
+                        dict_battle_point[BattlePointType.ARKPASSIVE_ENLIGHTMENT]
+                        * char.arkpassive_enlightment
                     )
 
             if coeff is not None:

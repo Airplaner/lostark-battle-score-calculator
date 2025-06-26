@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any
+from typing import Any, Literal
 
 import jmespath
 
@@ -74,28 +74,43 @@ class CharacterInformation:
             raise ValueError("주어진 문자열이 올바른 포맷이 아닙니다.")
         return tier, name, level
 
-    @property
-    def arkpassive_evolution(self) -> int:
+    def arkpassive_points(
+        self,
+        arkpassive_type: Literal["진화", "깨달음", "도약"],
+    ) -> int:
         """아크패시브에 소요한 포인트의 수"""
         result = 0
         effects = jmespath.search("ArkPassive.Effects", self._data)
         for effect in effects:
-            if effect["Name"] != "진화":
+            if effect["Name"] != arkpassive_type:
                 continue
 
             desc = effect["Description"]
             tier, name, level = self.parse_arkpassive_effect_description(desc)
 
-            # TODO name에 기반하여 레벨당 사용하는 포인트 계산
-
             coeff = 0  # level당 포인트
-            if tier == 1:
-                coeff = 1
-            if tier == 2 or tier == 3:
-                coeff = 10
-            elif tier == 4:
-                coeff = 15
+
+            # TODO name에 기반하여 레벨당 사용하는 포인트 계산
+            if arkpassive_type == "진화":
+                if tier == 1:
+                    coeff = 1
+                if tier == 2 or tier == 3:
+                    coeff = 10
+                elif tier == 4:
+                    coeff = 15
 
             result += level * coeff
 
         return result
+
+    @property
+    def arkpassive_evolution(self) -> int:
+        return self.arkpassive_points("진화")
+
+    @property
+    def arkpassive_enlightment(self) -> int:
+        return self.arkpassive_points("깨달음")
+
+    @property
+    def arkpassive_leap(self) -> int:
+        return self.arkpassive_points("도약")
