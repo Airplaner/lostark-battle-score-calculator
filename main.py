@@ -7,10 +7,6 @@ from enum import Enum
 from character import CharacterInformation
 
 
-def recursive_defaultdict():
-    return defaultdict(recursive_defaultdict)
-
-
 # current version: 865
 def dump_battle_point_json():
     """
@@ -51,21 +47,33 @@ def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint.json"):
     * result[Type][ValueA] = ValueB
     * result[Type][ValueA][ValueB] = ValueC
     """
-    result = recursive_defaultdict()
+    result = {}
 
     with open(json_file_path, "r") as fp:
         raw_battle_point = json.load(fp)
 
     for item in raw_battle_point:
+        item_type, val_a, val_b, val_c = (
+            item["Type"],
+            item["ValueA"],
+            item["ValueB"],
+            item["ValueC"],
+        )
         # A만 쓰는 경우
-        if item["ValueB"] == 0 and item["ValueC"] == 0:
-            result[item["Type"]] = item["ValueA"]
+        if val_b == 0 and val_c == 0:
+            result[item_type] = val_a
         # A, B만 쓰는 경우
-        elif item["ValueC"] == 0:  #
-            result[item["Type"]][item["ValueA"]] = item["ValueB"]
+        elif val_c == 0:  #
+            if item_type not in result:
+                result[item_type] = {}
+            result[item_type][val_a] = val_b
         # A, B, C 모두 쓰는 경우
         else:
-            result[item["Type"]][item["ValueA"]][item["ValueB"]] = item["ValueC"]
+            if item_type not in result:
+                result[item_type] = {}
+            if val_a not in result[item_type]:
+                result[item_type][val_a] = {}
+            result[item_type][val_a][val_b] = val_c
 
     return result
 
