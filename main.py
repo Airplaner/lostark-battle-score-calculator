@@ -114,11 +114,11 @@ class BattlePointCalculator:
             print(f"{battle_point_type} {additional_message} {(10000 + coeff) / 10000}")
 
     def calc(self, char: CharacterInformation, *, verbose: bool = False) -> int:
-        dict_battle_point = self.dict_battle_point
-
         result = 1000  # base값 찾아야 함
 
         for battle_point_type in BattlePointType:
+            coeff = 0
+            dict_battle_point: dict | int = self.dict_battle_point[battle_point_type]
             match battle_point_type:
                 case BattlePointType.BASE_ATTACK_POINT:
                     # ValueA가 288인데 뭘까 이게?
@@ -126,60 +126,42 @@ class BattlePointCalculator:
 
                 case BattlePointType.LEVEL:
                     char_level = char.character_level
-                    coeff = dict_battle_point[BattlePointType.LEVEL].get(char_level)
+                    coeff = dict_battle_point.get(char_level)
                     if coeff is not None:
                         result = result * (coeff + 10000) // 10000
                     self.logging(battle_point_type, coeff)
 
                 case BattlePointType.WEAPON_QUALITY:
-                    coeff = dict_battle_point[BattlePointType.WEAPON_QUALITY].get(
-                        char.weapon_quality
-                    )
-                    if coeff is not None:
-                        result = result * (coeff + 10000) // 10000
+                    coeff = dict_battle_point[char.weapon_quality]
+                    result = result * (coeff + 10000) // 10000
                     self.logging(battle_point_type, coeff)
 
                 case BattlePointType.ARKPASSIVE_EVOLUTION:
-                    coeff = (
-                        dict_battle_point[BattlePointType.ARKPASSIVE_EVOLUTION]
-                        * char.arkpassive_evolution
-                    )
+                    coeff = dict_battle_point * char.arkpassive_evolution
                     if coeff is not None:
                         result = result * (coeff + 10000) // 10000
                     self.logging(battle_point_type, coeff)
 
                 case BattlePointType.ARKPASSIVE_ENLIGHTMENT:
-                    coeff = (
-                        dict_battle_point[BattlePointType.ARKPASSIVE_ENLIGHTMENT]
-                        * char.arkpassive_enlightment
-                    )
+                    coeff = dict_battle_point * char.arkpassive_enlightment
                     if coeff is not None:
                         result = result * (coeff + 10000) // 10000
                     self.logging(battle_point_type, coeff)
 
                 case BattlePointType.ARKPASSIVE_LEAP:
-                    coeff = (
-                        dict_battle_point[BattlePointType.ARKPASSIVE_ENLIGHTMENT]
-                        * char.arkpassive_enlightment
-                    )
+                    coeff = dict_battle_point * char.arkpassive_enlightment
                     if coeff is not None:
                         result = result * (coeff + 10000) // 10000
                     self.logging(battle_point_type, coeff)
 
                 case BattlePointType.KARMA_EVOLUTIONRANK:
-                    coeff = (
-                        dict_battle_point[BattlePointType.KARMA_EVOLUTIONRANK]
-                        * char.karma_evolutionrank
-                    )
+                    coeff = dict_battle_point * char.karma_evolutionrank
                     if coeff is not None:
                         result = result * (coeff + 10000) // 10000
                     self.logging(battle_point_type, coeff)
 
                 case BattlePointType.KARMA_LEAPLEVEL:
-                    coeff = (
-                        dict_battle_point[BattlePointType.KARMA_LEAPLEVEL]
-                        * char.karma_leaplevel
-                    )
+                    coeff = dict_battle_point * char.karma_leaplevel
                     if coeff is not None:
                         result = result * (coeff + 10000) // 10000
                     self.logging(battle_point_type, coeff)
@@ -188,13 +170,9 @@ class BattlePointCalculator:
                     for engraving in char.engravings:
                         name, level = engraving
                         engraving_id: int = self.dict_ability[name]
-                        engraving_coeffs = dict_battle_point[
-                            BattlePointType.ABILITY_ATTACK
-                        ].get(engraving_id)
-
-                        if engraving_coeffs:
-                            coeff = engraving_coeffs[level]
-                        else:  # 일부 각인은 전투력에 영향을 끼치지 않음
+                        try:
+                            coeff = dict_battle_point[engraving_id][level]
+                        except KeyError:
                             coeff = 0
 
                         result = result * (coeff + 10000) // 10000
