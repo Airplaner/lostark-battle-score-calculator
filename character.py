@@ -25,9 +25,9 @@ class CharacterInformation:
                 "힘, 민첩, 지능과 무기 공격력을 기반으로 증가한 기본 공격력은"
                 in tooltip
             ):
-                find = re.search(r"<font[^>]*>(\d+)</font>", tooltip)
-                if find is not None:
-                    return int(find.group(1))
+                matches = re.search(r"<font[^>]*>(\d+)</font>", tooltip)
+                if matches is not None:
+                    return int(matches.group(1))
                 raise RuntimeError("기본 공격력 찾기 실패")
 
     @property
