@@ -46,7 +46,8 @@ def dump_battle_point_json():
 
 def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint.json"):
     """
-    BattlePoint.json을 읽고, ValueC의 존재에 따라 다음 둘 중 하나의 형태로 초기화합니다.
+    BattlePoint.json을 읽고, ValueB, ValueC 존재에 따라 다음 둘 중 하나의 형태로 초기화합니다.
+    * result[Type] = ValueA
     * result[Type][ValueA] = ValueB
     * result[Type][ValueA][ValueB] = ValueC
     """
@@ -56,8 +57,13 @@ def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint.json"):
         raw_battle_point = json.load(fp)
 
     for item in raw_battle_point:
-        if item["ValueC"] == 0:
+        # A만 쓰는 경우
+        if item["ValueB"] == 0 and item["ValueC"] == 0:
+            result[item["Type"]] = item["ValueA"]
+        # A, B만 쓰는 경우
+        elif item["ValueC"] == 0:  #
             result[item["Type"]][item["ValueA"]] = item["ValueB"]
+        # A, B, C 모두 쓰는 경우
         else:
             result[item["Type"]][item["ValueA"]][item["ValueB"]] = item["ValueC"]
 
@@ -68,6 +74,7 @@ class BattlePointType(str, Enum):
     BASE_ATTACK_POINT = "base_attack_point"
     LEVEL = "level"
     WEAPON_QUALITY = "weapon_quality"
+    ARKPASSIVE_EVOLUTION = "arkpassive_evolution"
     ...
 
 
@@ -102,6 +109,12 @@ class BattlePointCalculator:
                 case BattlePointType.WEAPON_QUALITY:
                     coeff = dict_battle_point[BattlePointType.WEAPON_QUALITY].get(
                         char.weapon_quality
+                    )
+
+                case BattlePointType.ARKPASSIVE_EVOLUTION:
+                    coeff = (
+                        dict_battle_point[BattlePointType.ARKPASSIVE_EVOLUTION]
+                        * char.arkpassive_evolution
                     )
 
             if coeff is not None:

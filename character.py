@@ -53,3 +53,49 @@ class CharacterInformation:
 
         return None
         raise RuntimeError("무기 품질 찾기 실패")
+
+    def parse_arkpassive_effect_description(self, str_in: str) -> tuple[int, str, int]:
+        """
+        `<FONT color='#F1D594'>진화</FONT> 1티어 <FONT color='#F1D594'>특화 Lv.30</FONT>`
+        위 문자열에서 아크패시브 티어, 이름, 레벨을 가져옵니다.
+        """
+        matches = re.search(r"(\d+)티어.*?>([\uAC00-\uD7A3\s]+)\sLv\.(\d+)<", str_in)
+        # (\d+)는 숫자 가져오기
+        # .*? 는 lazy하게 매칭해서 태그 무시용 >는 태그 닫기까지
+        # 이름을 가져오기 위해 한글 (AC00-D7A3)과 공백을 포함하여 매치
+        # 하나의 공백 (\s) 이후 Lv 데이터 가져오기
+        if matches is not None:
+            tier, name, level = (
+                int(matches.group(1)),
+                str(matches.group(2)),
+                int(matches.group(3)),
+            )
+        else:
+            raise ValueError("주어진 문자열이 올바른 포맷이 아닙니다.")
+        return tier, name, level
+
+    @property
+    def arkpassive_evolution(self) -> int:
+        """아크패시브에 소요한 포인트의 수"""
+        result = 0
+        effects = jmespath.search("ArkPassive.Effects", self._data)
+        for effect in effects:
+            if effect["Name"] != "진화":
+                continue
+
+            desc = effect["Description"]
+            tier, name, level = self.parse_arkpassive_effect_description(desc)
+
+            # TODO name에 기반하여 레벨당 사용하는 포인트 계산
+
+            coeff = 0  # level당 포인트
+            if tier == 1:
+                coeff = 1
+            if tier == 2 or tier == 3:
+                coeff = 10
+            elif tier == 4:
+                coeff = 15
+
+            result += level * coeff
+
+        return result
