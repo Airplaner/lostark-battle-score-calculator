@@ -123,6 +123,7 @@ class CharacterInformation:
         matches = re.match(r"(\d+)랭크\s(\d+)레벨", str_in)
         if matches:
             return int(matches.group(1)), int(matches.group(2))
+        return 0, 0
 
     @property
     def karma_evolutionrank(self) -> int:
