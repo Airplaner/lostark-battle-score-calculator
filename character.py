@@ -147,3 +147,37 @@ class CharacterInformation:
                 return level
 
         raise RuntimeError("도약 카르마 레벨을 찾을 수 없습니다.")
+
+    @property
+    def engravings(self) -> list[tuple[str, int]]:
+        """
+        플레이어의 모든 각인을 (이름, 종합 레벨) tuple의 list로 반환합니다.
+        """
+        items = jmespath.search("ArmoryEngraving.ArkPassiveEffects", self._data)
+        result = list()
+
+        for item in items:
+            # 종합 레벨은 어빌리티 스톤 레벨x20 + 각인 활성화 수 + 1
+            # ex)전설 10권을 읽어서 2단계 활성화했으면 영웅4 + 전설2 = 6
+            total_level = 1
+
+            ability_stone_level = item["AbilityStoneLevel"]
+            if ability_stone_level is None:
+                ability_stone_level = 0
+            else:
+                ability_stone_level = int(ability_stone_level)
+            total_level += 20 * ability_stone_level
+
+            grade = str(item["Grade"])
+            level = int(item["Level"])
+            name = str(item["Name"])
+
+            total_level += level
+            if grade == "전설":
+                total_level += 4
+            elif grade == "유물":
+                total_level += 8
+
+            result.append((name, total_level))
+
+        return result

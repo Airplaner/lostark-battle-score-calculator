@@ -78,6 +78,11 @@ def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint.json"):
     return result
 
 
+def init_ability_dict(json_file_path: str = "Ability.json"):
+    with open(json_file_path, "r") as fp:
+        return json.load(fp)
+
+
 class BattlePointType(str, Enum):
     BASE_ATTACK_POINT = "base_attack_point"
     LEVEL = "level"
@@ -87,19 +92,26 @@ class BattlePointType(str, Enum):
     ARKPASSIVE_LEAP = "arkpassive_leap"
     KARMA_EVOLUTIONRANK = "karma_evolutionrank"
     KARMA_LEAPLEVEL = "karma_leaplevel"
+    ABILITY_ATTACK = "ability_attack"
     ...
 
 
 class BattlePointCalculator:
     def __init__(self):
         self.dict_battle_point = init_recursive_battle_point_dict()
+        self.dict_ability = init_ability_dict()
         self.verbose = False  # not thread-safe
 
-    def logging(self, battle_point_type: BattlePointType, coeff: int | None):
+    def logging(
+        self,
+        battle_point_type: BattlePointType,
+        coeff: int | None,
+        additional_message: str = "",
+    ):
         if self.verbose:
             if coeff is None:
                 coeff = 0
-            print(battle_point_type, f"{(10000 + coeff) / 10000}")
+            print(f"{battle_point_type} {additional_message} {(10000 + coeff) / 10000}")
 
     def calc(self, char: CharacterInformation, *, verbose: bool = False) -> int:
         dict_battle_point = self.dict_battle_point
@@ -107,8 +119,6 @@ class BattlePointCalculator:
         result = 1000  # base값 찾아야 함
 
         for battle_point_type in BattlePointType:
-            coeff = None
-
             match battle_point_type:
                 case BattlePointType.BASE_ATTACK_POINT:
                     # ValueA가 288인데 뭘까 이게?
@@ -117,46 +127,78 @@ class BattlePointCalculator:
                 case BattlePointType.LEVEL:
                     char_level = char.character_level
                     coeff = dict_battle_point[BattlePointType.LEVEL].get(char_level)
+                    if coeff is not None:
+                        result = result * (coeff + 10000) // 10000
+                    self.logging(battle_point_type, coeff)
 
                 case BattlePointType.WEAPON_QUALITY:
                     coeff = dict_battle_point[BattlePointType.WEAPON_QUALITY].get(
                         char.weapon_quality
                     )
+                    if coeff is not None:
+                        result = result * (coeff + 10000) // 10000
+                    self.logging(battle_point_type, coeff)
 
                 case BattlePointType.ARKPASSIVE_EVOLUTION:
                     coeff = (
                         dict_battle_point[BattlePointType.ARKPASSIVE_EVOLUTION]
                         * char.arkpassive_evolution
                     )
+                    if coeff is not None:
+                        result = result * (coeff + 10000) // 10000
+                    self.logging(battle_point_type, coeff)
 
                 case BattlePointType.ARKPASSIVE_ENLIGHTMENT:
                     coeff = (
                         dict_battle_point[BattlePointType.ARKPASSIVE_ENLIGHTMENT]
                         * char.arkpassive_enlightment
                     )
+                    if coeff is not None:
+                        result = result * (coeff + 10000) // 10000
+                    self.logging(battle_point_type, coeff)
 
                 case BattlePointType.ARKPASSIVE_LEAP:
                     coeff = (
                         dict_battle_point[BattlePointType.ARKPASSIVE_ENLIGHTMENT]
                         * char.arkpassive_enlightment
                     )
+                    if coeff is not None:
+                        result = result * (coeff + 10000) // 10000
+                    self.logging(battle_point_type, coeff)
 
                 case BattlePointType.KARMA_EVOLUTIONRANK:
                     coeff = (
                         dict_battle_point[BattlePointType.KARMA_EVOLUTIONRANK]
                         * char.karma_evolutionrank
                     )
+                    if coeff is not None:
+                        result = result * (coeff + 10000) // 10000
+                    self.logging(battle_point_type, coeff)
 
                 case BattlePointType.KARMA_LEAPLEVEL:
                     coeff = (
                         dict_battle_point[BattlePointType.KARMA_LEAPLEVEL]
                         * char.karma_leaplevel
                     )
+                    if coeff is not None:
+                        result = result * (coeff + 10000) // 10000
+                    self.logging(battle_point_type, coeff)
 
-            if coeff is not None:
-                result = result * (coeff + 10000) // 10000
+                case BattlePointType.ABILITY_ATTACK:
+                    for engraving in char.engravings:
+                        name, level = engraving
+                        engraving_id: int = self.dict_ability[name]
+                        engraving_coeffs = dict_battle_point[
+                            BattlePointType.ABILITY_ATTACK
+                        ].get(engraving_id)
 
-            self.logging(battle_point_type, coeff)
+                        if engraving_coeffs:
+                            coeff = engraving_coeffs[level]
+                        else:  # 일부 각인은 전투력에 영향을 끼치지 않음
+                            coeff = 0
+
+                        result = result * (coeff + 10000) // 10000
+                        self.logging(battle_point_type, coeff, name)
 
         return result
 
