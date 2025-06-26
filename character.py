@@ -4,6 +4,8 @@ from typing import Any, Literal
 
 import jmespath
 
+KOREAN = r"[가-힣\s]"
+
 
 class CharacterInformation:
     def __init__(self, data: dict):
@@ -182,3 +184,24 @@ class CharacterInformation:
             result.append((name, total_level))
 
         return result
+
+    @property
+    def elixir_set(self) -> tuple[str | None, int | None]:
+        """
+        플레이어의 엘릭서 세트를 (세트 이름, 활성 단계)으로 반환합니다.
+        """
+        elixir_set_name: str | None = None
+        elixir_set_level: int | None = None
+
+        equipments = jmespath.search("ArmoryEquipment", self._data)
+        for equipment in equipments:
+            if equipment["Type"] == "투구" or equipment["Type"] == "장갑":
+                matches = re.search(
+                    rf"({KOREAN}+) \(([12])단계\)", equipment["Tooltip"]
+                )
+                if matches:
+                    elixir_set_name = matches.group(1)
+                    elixir_set_level = int(matches.group(2))
+                    break
+
+        return elixir_set_name, elixir_set_level

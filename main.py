@@ -93,6 +93,7 @@ class BattlePointType(str, Enum):
     KARMA_EVOLUTIONRANK = "karma_evolutionrank"
     KARMA_LEAPLEVEL = "karma_leaplevel"
     ABILITY_ATTACK = "ability_attack"
+    ELIXIR_SET = "elixir_set"
     ...
 
 
@@ -100,6 +101,8 @@ class BattlePointCalculator:
     def __init__(self):
         self.dict_battle_point = init_recursive_battle_point_dict()
         self.dict_ability = init_ability_dict()
+        with open("ElixirSet.json", "r") as fp:
+            self.dict_elixir_set = json.load(fp)
         self.verbose = False  # not thread-safe
 
     def logging(
@@ -177,6 +180,23 @@ class BattlePointCalculator:
 
                         result = result * (coeff + 10000) // 10000
                         self.logging(battle_point_type, coeff, name)
+
+                case BattlePointType.ELIXIR_SET:
+                    name, level = char.elixir_set
+                    if name:
+                        elixir_set_id: int = self.dict_elixir_set[name]
+
+                        try:
+                            coeff = self.dict_battle_point[elixir_set_id][level]
+                        except KeyError:
+                            coeff = 0
+
+                    result = result * (coeff + 10000) // 10000
+                    self.logging(
+                        battle_point_type,
+                        coeff,
+                        f"{name} {level}단계",
+                    )
 
         return result
 
