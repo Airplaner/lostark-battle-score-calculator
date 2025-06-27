@@ -1,43 +1,7 @@
 import json
-import sqlite3
-import xml.etree.ElementTree as ET
-from collections import defaultdict
 from enum import Enum
 
 from character import CharacterInformation
-
-
-# current version: 865
-def dump_battle_point_json():
-    """
-    XML과 DB를 읽고 공유 가능한 JSON 형태로 덤프합니다.
-    """
-    # read EFGameMsg_Enums.xml and build dict
-    tree = ET.parse("EFGameMsg_Enums.xml")
-    root = tree.getroot()
-
-    battle_point_type: dict[str, str] = {}
-    for node in root.findall("NODE"):
-        node_type = node.attrib.get("Type")
-        if node_type == "battlepointtype":
-            battle_point_type[node.attrib["Index"]] = node.attrib["Name"]
-
-    # read EFTable_BattlePoint.db and build dict
-    con = sqlite3.connect("EFTable_BattlePoint.db")
-    con.row_factory = sqlite3.Row
-    cur = con.cursor()
-
-    # replace integer Type to `battlepointtype`
-    rows = cur.execute(
-        "SELECT Type, ValueA, ValueB, ValueC FROM BattlePoint WHERE PrimaryKey = 1"
-    ).fetchall()
-    rows = list(map(dict, rows))
-    for row in rows:
-        row["Type"] = battle_point_type[str(row["Type"])]
-
-    # dump as `BattlePoint.json`
-    with open("BattlePoint.json", "w") as fp:
-        fp.write(json.dumps(rows))
 
 
 def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint.json"):
