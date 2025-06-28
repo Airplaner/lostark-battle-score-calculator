@@ -18,6 +18,7 @@ def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint.json"):
 
 class BattlePointType(str, Enum):
     BASE_ATTACK_POINT = "base_attack_point"
+    BASE_HEALTH_POINT = "base_health_point"
     LEVEL = "level"
     WEAPON_QUALITY = "weapon_quality"
     ARKPASSIVE_EVOLUTION = "arkpassive_evolution"
@@ -26,8 +27,24 @@ class BattlePointType(str, Enum):
     KARMA_EVOLUTIONRANK = "karma_evolutionrank"
     KARMA_LEAPLEVEL = "karma_leaplevel"
     ABILITY_ATTACK = "ability_attack"
+    ABILITY_DEFENSE = "ability_defense"
     ELIXIR_SET = "elixir_set"
-    ...
+    ELIXIR_GRADE_ATTACK = "elixir_grade_attack"
+    ELIXIR_GRADE_DEFENSE = "elixir_grade_defense"
+    ACCESSORY_GRINDING_ATTACK = "accessory_grinding_attack"
+    ACCESSORY_GRINDING_DEFENSE = "accessory_grinding_defense"
+    ACCESSORY_GRINDING_ADDONTYPE_ATTACK = "accessory_grinding_addontype_attack"
+    ACCESSORY_GRINDING_ADDONTYPE_DEFENSE = "accessory_grinding_addontype_defense"
+    BRACELET_STATTYPE = "bracelet_stattype"
+    BRACELET_ADDONTYPE_ATTACK = "bracelet_addontype_attack"
+    BRACELET_ADDONTYPE_DEFENSE = "bracelet_addontype_defense"
+    GEM = "gem"
+    ESTHER_WEAPON = "esther_weapon"
+    TRANSCENDENCE_ARMOR = "transcendence_armor"
+    TRANSCENDENCE_ADDITIONAL = "transcendence_additional"
+    BATTLESTAT = "battlestat"
+    CARD_SET = "card_set"
+    PET_SPECIALTY = "pet_specialty"
 
 
 class BattlePointCalculator:
