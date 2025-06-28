@@ -393,10 +393,13 @@ def dump_arkpassive_node_name():
 
         if group not in result:
             result[group] = {}
-        if player_class not in result[group]:
-            result[group][player_class] = {}
 
-        result[group][player_class][name] = activate_point
+        if player_class == "ENUMNULL":  # 진화
+            result[group][name] = activate_point
+        else:
+            if player_class not in result[group]:
+                result[group][player_class] = {}
+            result[group][player_class][name] = activate_point
 
     with open("ArkPassive.json", "w", encoding="utf-8") as fp:
         json.dump(result, fp, indent=2, ensure_ascii=False)
