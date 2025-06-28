@@ -1,3 +1,4 @@
+from decimal import Decimal
 import json
 from enum import Enum
 from typing import Literal
@@ -7,10 +8,7 @@ from character import CharacterInformation
 
 def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint.json"):
     """
-    BattlePoint.json을 읽고, ValueB, ValueC 존재에 따라 다음 둘 중 하나의 형태로 초기화합니다.
-    * result[Type] = ValueA
-    * result[Type][ValueA] = ValueB
-    * result[Type][ValueA][ValueB] = ValueC
+    BattlePoint.json을 읽습니다.
     """
     with open(json_file_path, "r", encoding="utf-8") as fp:
         result = json.load(fp)
@@ -48,7 +46,10 @@ class BattlePointCalculator:
         if self.verbose:
             if coeff is None:
                 coeff = 0
-            print(f"{battle_point_type} {additional_message} {(10000 + coeff) / 10000}")
+            base = Decimal(10000)
+            coeff = Decimal(coeff)
+            increase = ((coeff + base) / base - 1) * 100
+            print(f"{battle_point_type} {additional_message} +{increase:.2f}%")
 
     def calc(
         self,
