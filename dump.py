@@ -302,8 +302,8 @@ def dump_battle_point_json():
             result[pk][bp][val_a][val_b] = val_c
 
     # # dump as `BattlePoint2.json`
-    with open("BattlePoint2.json", "w") as fp:
-        fp.write(json.dumps(result, ensure_ascii=False))
+    with open("BattlePoint2.json", "w", encoding="utf-8") as fp:
+        fp.write(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 def dump_ability_json():
