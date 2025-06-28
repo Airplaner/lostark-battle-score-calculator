@@ -90,15 +90,16 @@ class CharacterInformation:
         self,
     ) -> dict[Literal["진화", "깨달음", "도약"], list[ArkPassiveNode]]:
         """아크패시브 노드"""
-        result: dict[str, list] = {}
+        result: dict[str, list] = {
+            "진화": [],
+            "깨달음": [],
+            "도약": [],
+        }
         effects = jmespath.search("ArkPassive.Effects", self._data)
         for effect in effects:
             group = effect["Name"]
             desc = effect["Description"]
             tier, name, level = self.parse_arkpassive_effect_description(desc)
-
-            if group not in result:
-                result[group] = list()
 
             result[group].append(
                 ArkPassiveNode(
