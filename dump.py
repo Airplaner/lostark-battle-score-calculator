@@ -111,7 +111,7 @@ def dump_battle_point_json():
     game_msg = GameMsg()
 
     # EFTable_BattlePoint.db을 읽기
-    con = sqlite3.connect("EFTable_BattlePoint.db")
+    con = sqlite3.connect(f"{BASE}/EFTable_BattlePoint.db")
     con.row_factory = sqlite3.Row
     cur = con.cursor()
 
@@ -133,7 +133,7 @@ def dump_battle_point_json():
         fname = f"{BASE}/EFTable_{db}.db"
         if not Path(fname).exists():
             raise ValueError(f"{fname} 파일이 없습니다.")
-        cur.execute(f"ATTACH DATABASE 'EFTable_{db}.db' AS {db}")
+        cur.execute(f"ATTACH DATABASE '{BASE}/EFTable_{db}.db' AS {db}")
 
     # 작업 시작
     result = {"attack": {}, "defense": {}}
