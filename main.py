@@ -1,6 +1,7 @@
 from decimal import Decimal
 import json
 from enum import Enum
+import re
 from typing import Literal
 
 from character import CharacterInformation
@@ -183,12 +184,59 @@ class BattlePointCalculator:
                         coeff,
                         char.elixir_set,
                     )
+                case (
+                    BattlePointType.ACCESSORY_GRINDING_ATTACK
+                    | BattlePointType.ACCESSORY_GRINDING_DEFENSE
+                ):
+                    for equipment in char.equipments:
+                        for grinding_effect in equipment.grinding_effects:
+                            coeff = self.find_by_regex(
+                                grinding_effect, dict_battle_point
+                            )
+
+                            if coeff:
+                                result = result * (coeff + 10000) // 10000
+                                self.logging(
+                                    battle_point_type,
+                                    coeff,
+                                    f"{equipment.name} - {grinding_effect}",
+                                )
+
+                case (
+                    BattlePointType.ACCESSORY_GRINDING_ADDONTYPE_ATTACK
+                    | BattlePointType.ACCESSORY_GRINDING_ADDONTYPE_ATTACK
+                ):
+                    for equipment in char.equipments:
+                        for grinding_effect in equipment.grinding_effects:
+                            coeff = self.find_by_str(grinding_effect, dict_battle_point)
+
+                            if coeff:
+                                result = result * (coeff + 10000) // 10000
+                                self.logging(
+                                    battle_point_type,
+                                    coeff,
+                                    f"{equipment.name} - {grinding_effect}",
+                                )
 
         return result
+
+    def find_by_regex(self, str_in: str, dict_in: dict) -> int:
+        coeff = 0
+        for regex in dict_in:
+            matches = re.match(regex, str_in)
+            if not matches:
+                continue
+            value = Decimal(matches.group(1)) * 100
+            coeff = dict_in[regex] * value // 10000
+
+        return coeff
+
+    def find_by_str(self, str_in: str, dict_in: dict) -> int:
+        return dict_in.get(str_in, 0)
 
 
 # GET /armories/characters/{characterName} 응답을 json으로 저장하여 사용
 character_info = CharacterInformation(json.load(open("character.json", "rb")))
 calculator = BattlePointCalculator()
 calculator.verbose = True
-print(calculator.calc(character_info))
+print(calculator.calc(character_info) / 10000 / 100)
