@@ -83,9 +83,12 @@ class BattlePointCalculator:
         for battle_point_type in BattlePointType:
             coeff = 0
             # 현재 battle point type에 맞는 계수를 가져옴
-            dict_battle_point: dict = self.dict_battle_point[score_type][
+            dict_battle_point: dict | None = self.dict_battle_point[score_type].get(
                 battle_point_type
-            ]
+            )
+            if dict_battle_point is None:
+                continue
+
             match battle_point_type:
                 case BattlePointType.LEVEL:
                     char_level = char.character_level
