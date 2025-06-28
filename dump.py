@@ -89,6 +89,9 @@ class GameMsg:
         return result
 
 
+game_msg = GameMsg()
+
+
 # current version: 865
 def dump_battle_point_json():
     """
@@ -107,8 +110,6 @@ def dump_battle_point_json():
 
         elif node_type == "stattype":
             stat_type[int(node.attrib["Index"])] = node.attrib["Name"]
-
-    game_msg = GameMsg()
 
     # EFTable_BattlePoint.db을 읽기
     con = sqlite3.connect(f"{BASE}/EFTable_BattlePoint.db")
@@ -348,4 +349,58 @@ def dump_elixir_set():  # DEPRECATED
         json.dump(result_dict, fp, ensure_ascii=False)
 
 
-dump_battle_point_json()
+def build_player_class_dict() -> dict[int, str]:
+    """
+    클래스 id와 실제 한글명을 맞게 설정
+    """
+    tree = ET.parse(f"{BASE}/EFGameMsg_Enums.xml")
+    root = tree.getroot()
+
+    player_class: dict[int, str] = {}
+    for node in root.findall("NODE"):
+        node_type = node.attrib.get("Type")
+        if node_type == "playerclass":
+            player_class[int(node.attrib["Index"])] = node.attrib["Name"]
+
+    result = {}
+    for idx, keyword in player_class.items():
+        msg = game_msg.find(f"tip.name.enum_playerclass_{keyword}")
+        result[idx] = msg
+    return result
+
+
+def dump_arkpassive_node_name():
+    """
+    진화, 깨달음, 도약 직업별 아크패시브 이름과 소모 포인트를 ArkPassive.json으로 저장
+    이름만 저장하면 안 되는 이유는 동일한 이름의 노드가 많아서
+    """
+
+    with sqlite3.connect(f"{BASE}/EFTable_ArkPassive.db") as conn:
+        cur = conn.cursor()
+        rows = cur.execute(
+            'SELECT Name, "Group", PCClass, ActivatePoint FROM ArkPassive'
+        ).fetchall()
+
+    dict_group = {0: "진화", 1: "깨달음", 2: "도약"}
+    dict_player_class = build_player_class_dict()
+
+    result = {}
+
+    for name_id, group_id, pc_class_id, activate_point in rows:
+        name = game_msg.find(name_id)
+        group = dict_group[group_id]
+        player_class = dict_player_class[pc_class_id]
+
+        if group not in result:
+            result[group] = {}
+        if player_class not in result[group]:
+            result[group][player_class] = {}
+
+        result[group][player_class][name] = activate_point
+
+    with open("ArkPassive.json", "w", encoding="utf-8") as fp:
+        json.dump(result, fp, indent=2, ensure_ascii=False)
+
+
+# dump_battle_point_json()
+dump_arkpassive_node_name()
