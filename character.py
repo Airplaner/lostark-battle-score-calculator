@@ -1,11 +1,17 @@
 import json
 import re
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Literal
 
 import jmespath
 
-KOREAN = r"[가-힣\s]"
+REGEX_KOREAN = r"[가-힣\s]"
+REGEX_TAG: re.Pattern[str] = re.compile(r"<[^>]+>")
+
+
+def remove_tags(str_in: str) -> str:
+    return re.sub(REGEX_TAG, "", str_in)
 
 
 @dataclass
@@ -14,6 +20,26 @@ class ArkPassiveNode:
     level: int
     tier: int
     desc: str
+
+
+class EquipmentType(str, Enum):
+    무기 = "무기"
+    투구 = "투구"
+    상의 = "상의"
+    하의 = "하의"
+    장갑 = "장갑"
+    어깨 = "어깨"
+    목걸이 = "목걸이"
+    귀걸이 = "귀걸이"
+    반지 = "반지"
+
+
+@dataclass
+class Equipment:
+    name: str
+    equipment_type: EquipmentType
+    base_effects: list[str]
+    grinding_effects: list[str]
 
 
 class CharacterInformation:
@@ -193,7 +219,7 @@ class CharacterInformation:
         for equipment in equipments:
             if equipment["Type"] == "투구" or equipment["Type"] == "장갑":
                 matches = re.search(
-                    rf"({KOREAN}+) \(([12])단계\)", equipment["Tooltip"]
+                    rf"({REGEX_KOREAN}+) \(([12])단계\)", equipment["Tooltip"]
                 )
                 if matches:
                     elixir_set_name = matches.group(1)
@@ -208,3 +234,60 @@ class CharacterInformation:
     def character_class_name(self) -> str:
         """클래스명"""
         return jmespath.search("ArmoryProfile.CharacterClassName", self._data)
+
+    @property
+    def equipments(self) -> list[Equipment]:
+        result = []
+
+        equipments = jmespath.search("ArmoryEquipment", self._data)
+        for equipment in equipments:
+            grinding_effect_desc: str | None = None
+            base_effect_desc: str | None = None
+
+            # 일단 악세만
+            if equipment["Type"] not in ["목걸이", "귀걸이", "반지"]:
+                continue
+
+            tooltip: dict = json.loads(equipment["Tooltip"])
+
+            # with open(f"{equipment['Name']}.json", "w", encoding="utf-8") as fp:
+            #     json.dump(tooltip, fp, ensure_ascii=False, indent=2)
+
+            for element_id, element in tooltip.items():
+                if not element:
+                    continue
+
+                # 모든 Element는 null이 아니라면 반드시
+                # type, value 두 개의 field를 가지고 있다고 가정
+
+                # 연마 효과, 기본 효과는 ItemParBox 타입에 있음
+                if element["type"] == "ItemPartBox":
+                    if not isinstance(element["value"], dict):
+                        continue
+
+                    # 반드시 Element_000에는 효과 종류, Elment_001에는 효과들있다고 가정
+                    effect_type = re.sub(REGEX_TAG, "", element["value"]["Element_000"])
+                    if effect_type == "연마 효과":
+                        grinding_effect_desc: str = element["value"]["Element_001"]
+                    elif effect_type == "기본 효과":
+                        base_effect_desc: str = element["value"]["Element_001"]
+
+            if grinding_effect_desc is None or base_effect_desc is None:
+                raise ValueError("악세서리가 왜 효과가 없어?")
+
+            grinding_effects = grinding_effect_desc.lower().split("<br>")
+            base_effects = base_effect_desc.lower().split("<br>")
+
+            grinding_effects = list(map(remove_tags, grinding_effects))
+            base_effects = list(map(remove_tags, base_effects))
+
+            result.append(
+                Equipment(
+                    name=equipment["Name"],
+                    equipment_type=equipment["Tooltip"],
+                    base_effects=base_effects,
+                    grinding_effects=grinding_effects,
+                )
+            )
+
+        return result
