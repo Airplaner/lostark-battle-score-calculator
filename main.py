@@ -5,7 +5,7 @@ from typing import Literal
 from character import CharacterInformation
 
 
-def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint2.json"):
+def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint.json"):
     """
     BattlePoint.json을 읽고, ValueB, ValueC 존재에 따라 다음 둘 중 하나의 형태로 초기화합니다.
     * result[Type] = ValueA
