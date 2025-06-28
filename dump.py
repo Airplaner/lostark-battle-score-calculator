@@ -214,11 +214,15 @@ def dump_battle_point_json():
         ]:
             # ValueA가 1이면 Enum.xml의 값 참조
             if val_a == 1:
-                msg = game_msg.find(f"tip.name.enum_stattype_{stat_type[val_b]}")
+                stat_name = stat_type[val_b]
+                msg = game_msg.find(f"tip.name.enum_stattype_{stat_name}")
 
-                # 공%(49) 깡공(124) 모두 "공격력"이므로, 공격력에 +붙임
-                if not stat_type[val_b].endswith("rate"):
-                    msg += "+"
+                # 공%(49) 깡공(124) 모두 "공격력"
+                # 옵션을 파싱할 수 있게 regex 형태로
+                if stat_name.endswith("rate"):
+                    msg += " +\+([0-9.]+)%$"
+                else:
+                    msg += " +\+([0-9.]+)$"
 
             # Value가 3이면 Ability 사용
             elif val_a == 3:
@@ -302,8 +306,8 @@ def dump_battle_point_json():
                 result[pk][bp][val_a] = {}
             result[pk][bp][val_a][val_b] = val_c
 
-    # # dump as `BattlePoint2.json`
-    with open("BattlePoint2.json", "w", encoding="utf-8") as fp:
+    # # dump as `BattlePoint.json`
+    with open("BattlePoint.json", "w", encoding="utf-8") as fp:
         fp.write(json.dumps(result, ensure_ascii=False, indent=2))
 
 
@@ -405,5 +409,5 @@ def dump_arkpassive_node_name():
         json.dump(result, fp, indent=2, ensure_ascii=False)
 
 
-# dump_battle_point_json()
-dump_arkpassive_node_name()
+dump_battle_point_json()
+# dump_arkpassive_node_name()
