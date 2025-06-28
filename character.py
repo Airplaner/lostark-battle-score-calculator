@@ -1,17 +1,14 @@
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Literal
 
 import jmespath
 
 REGEX_KOREAN = r"[가-힣\s]"
-REGEX_TAG: re.Pattern[str] = re.compile(r"<[^>]+>")
-
-
-def remove_tags(str_in: str) -> str:
-    return re.sub(REGEX_TAG, "", str_in)
+REGEX_TAG = re.compile(r"<[^>]+>")
+REGEX_IMAGE_TAG = re.compile(r"(?=<img[^>]*></img>)")
 
 
 @dataclass
@@ -32,14 +29,16 @@ class EquipmentType(str, Enum):
     목걸이 = "목걸이"
     귀걸이 = "귀걸이"
     반지 = "반지"
+    팔찌 = "팔찌"
 
 
 @dataclass
 class Equipment:
     name: str
     equipment_type: EquipmentType
-    base_effects: list[str]
-    grinding_effects: list[str]
+    base_effects: list[str] = field(default_factory=list)  # 기본 효과
+    grinding_effects: list[str] = field(default_factory=list)  # 연마 효과
+    bracelet_effects: list[str] = field(default_factory=list)  # 팔찌 효과
 
 
 class CharacterInformation:
@@ -241,11 +240,13 @@ class CharacterInformation:
 
         equipments = jmespath.search("ArmoryEquipment", self._data)
         for equipment in equipments:
-            grinding_effect_desc: str | None = None
-            base_effect_desc: str | None = None
+            obj_equipment = Equipment(
+                name=equipment["Name"],
+                equipment_type=equipment["Type"],
+            )
 
             # 일단 악세만
-            if equipment["Type"] not in ["목걸이", "귀걸이", "반지"]:
+            if equipment["Type"] not in ["목걸이", "귀걸이", "반지", "팔찌"]:
                 continue
 
             tooltip: dict = json.loads(equipment["Tooltip"])
@@ -260,34 +261,44 @@ class CharacterInformation:
                 # 모든 Element는 null이 아니라면 반드시
                 # type, value 두 개의 field를 가지고 있다고 가정
 
-                # 연마 효과, 기본 효과는 ItemParBox 타입에 있음
+                # 연마 효과, 기본 효과, 팔찌 효과는 ItemPartBox 타입에 있음
                 if element["type"] == "ItemPartBox":
                     if not isinstance(element["value"], dict):
                         continue
 
                     # 반드시 Element_000에는 효과 종류, Elment_001에는 효과들있다고 가정
                     effect_type = re.sub(REGEX_TAG, "", element["value"]["Element_000"])
-                    if effect_type == "연마 효과":
-                        grinding_effect_desc: str = element["value"]["Element_001"]
-                    elif effect_type == "기본 효과":
-                        base_effect_desc: str = element["value"]["Element_001"]
+                    effect_desc = element["value"]["Element_001"]
+                    match effect_type:
+                        case "기본 효과":
+                            obj_equipment.base_effects = self.split_equipment_effects(
+                                effect_desc
+                            )
+                        case "연마 효과":
+                            obj_equipment.grinding_effects = (
+                                self.split_equipment_effects(effect_desc)
+                            )
+                        case "팔찌 효과":
+                            obj_equipment.bracelet_effects = (
+                                self.split_equipment_effects(effect_desc)
+                            )
+                        case _:
+                            ...
+                            # print("이게멀까요?", effect_type)
 
-            if grinding_effect_desc is None or base_effect_desc is None:
-                raise ValueError("악세서리가 왜 효과가 없어?")
+            result.append(obj_equipment)
 
-            grinding_effects = grinding_effect_desc.lower().split("<br>")
-            base_effects = base_effect_desc.lower().split("<br>")
+        return result
 
-            grinding_effects = list(map(remove_tags, grinding_effects))
-            base_effects = list(map(remove_tags, base_effects))
-
-            result.append(
-                Equipment(
-                    name=equipment["Name"],
-                    equipment_type=equipment["Tooltip"],
-                    base_effects=base_effects,
-                    grinding_effects=grinding_effects,
-                )
-            )
-
+    @staticmethod
+    def split_equipment_effects(str_in: str) -> list[str]:
+        """
+        장비 옵션들이 HTML 태그와 함께 뭉쳐진 하나의 문자열로 왔을 때,
+        깔끔한 한글로 반환
+        """
+        str_in = str_in.lower()
+        str_in = str_in.replace("<br>", " ")
+        result = re.split(REGEX_IMAGE_TAG, str_in)
+        result = [re.sub(REGEX_TAG, "", i) for i in result if i]
+        result = [i.strip() for i in result if i]
         return result

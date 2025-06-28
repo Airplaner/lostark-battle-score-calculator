@@ -4,7 +4,7 @@ from enum import Enum
 import re
 from typing import Literal
 
-from character import CharacterInformation
+from character import CharacterInformation, EquipmentType
 
 
 def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint.json"):
@@ -189,17 +189,15 @@ class BattlePointCalculator:
                     | BattlePointType.ACCESSORY_GRINDING_DEFENSE
                 ):
                     for equipment in char.equipments:
-                        for grinding_effect in equipment.grinding_effects:
-                            coeff = self.find_by_regex(
-                                grinding_effect, dict_battle_point
-                            )
+                        for effect in equipment.grinding_effects:
+                            coeff = self.find_by_regex(effect, dict_battle_point)
 
                             if coeff:
                                 result = result * (coeff + 10000) // 10000
                                 self.logging(
                                     battle_point_type,
                                     coeff,
-                                    f"{equipment.name} - {grinding_effect}",
+                                    f"{equipment.name} - {effect}",
                                 )
 
                 case (
@@ -207,15 +205,37 @@ class BattlePointCalculator:
                     | BattlePointType.ACCESSORY_GRINDING_ADDONTYPE_ATTACK
                 ):
                     for equipment in char.equipments:
-                        for grinding_effect in equipment.grinding_effects:
-                            coeff = self.find_by_str(grinding_effect, dict_battle_point)
+                        for effect in equipment.grinding_effects:
+                            coeff = self.find_by_str(effect, dict_battle_point)
 
                             if coeff:
                                 result = result * (coeff + 10000) // 10000
                                 self.logging(
                                     battle_point_type,
                                     coeff,
-                                    f"{equipment.name} - {grinding_effect}",
+                                    f"{equipment.name} - {effect}",
+                                )
+
+                case (
+                    BattlePointType.BRACELET_STATTYPE
+                    | BattlePointType.BRACELET_ADDONTYPE_ATTACK
+                    | BattlePointType.BRACELET_ADDONTYPE_DEFENSE
+                ):
+                    continue
+
+                    for equipment in char.equipments:
+                        if equipment.equipment_type != EquipmentType.팔찌:
+                            continue
+
+                        for effect in equipment.bracelet_effects:
+                            coeff = self.find_by_str(effect, dict_battle_point)
+
+                            if coeff:
+                                result = result * (coeff + 10000) // 10000
+                                self.logging(
+                                    battle_point_type,
+                                    coeff,
+                                    f"{equipment.name} - {effect}",
                                 )
 
         return result
@@ -236,7 +256,11 @@ class BattlePointCalculator:
 
 
 # GET /armories/characters/{characterName} 응답을 json으로 저장하여 사용
-character_info = CharacterInformation(json.load(open("character.json", "rb")))
+
 calculator = BattlePointCalculator()
 calculator.verbose = True
-print(calculator.calc(character_info) / 10000 / 100)
+for fname in ["character.json", "character2.json", "character3.json"]:
+    print("=" * 100)
+    print(fname)
+    character_info = CharacterInformation(json.load(open(fname, "rb")))
+    print(calculator.calc(character_info) / 10000 / 100)
