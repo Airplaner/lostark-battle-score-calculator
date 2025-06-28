@@ -1,10 +1,19 @@
 import json
 import re
+from dataclasses import dataclass
 from typing import Any, Literal
 
 import jmespath
 
 KOREAN = r"[가-힣\s]"
+
+
+@dataclass
+class ArkPassiveNode:
+    name: str
+    level: int
+    tier: int
+    desc: str
 
 
 class CharacterInformation:
@@ -76,46 +85,31 @@ class CharacterInformation:
             raise ValueError("주어진 문자열이 올바른 포맷이 아닙니다.")
         return tier, name, level
 
-    def arkpassive_points(
+    @property
+    def arkpassive_nodes(
         self,
-        arkpassive_type: Literal["진화", "깨달음", "도약"],
-    ) -> int:
-        """아크패시브에 소요한 포인트의 수"""
-        result = 0
+    ) -> dict[Literal["진화", "깨달음", "도약"], list[ArkPassiveNode]]:
+        """아크패시브 노드"""
+        result: dict[str, list] = {}
         effects = jmespath.search("ArkPassive.Effects", self._data)
         for effect in effects:
-            if effect["Name"] != arkpassive_type:
-                continue
-
+            group = effect["Name"]
             desc = effect["Description"]
             tier, name, level = self.parse_arkpassive_effect_description(desc)
 
-            coeff = 0  # level당 포인트
+            if group not in result:
+                result[group] = list()
 
-            # TODO name에 기반하여 레벨당 사용하는 포인트 계산
-            if arkpassive_type == "진화":
-                if tier == 1:
-                    coeff = 1
-                if tier == 2 or tier == 3:
-                    coeff = 10
-                elif tier == 4:
-                    coeff = 15
-
-            result += level * coeff
+            result[group].append(
+                ArkPassiveNode(
+                    tier=tier,
+                    level=level,
+                    name=name,
+                    desc=desc,
+                )
+            )
 
         return result
-
-    @property
-    def arkpassive_evolution(self) -> int:
-        return self.arkpassive_points("진화")
-
-    @property
-    def arkpassive_enlightment(self) -> int:
-        return self.arkpassive_points("깨달음")
-
-    @property
-    def arkpassive_leap(self) -> int:
-        return self.arkpassive_points("도약")
 
     def parse_arkpassive_points_description(self, str_in: str) -> tuple[int, int]:
         """
@@ -208,3 +202,8 @@ class CharacterInformation:
         if elixir_set_name and elixir_set_level:
             return f"{elixir_set_name} {elixir_set_level}단계"
         return
+
+    @property
+    def character_class_name(self) -> str:
+        """클래스명"""
+        return jmespath.search("ArmoryProfile.CharacterClassName", self._data)

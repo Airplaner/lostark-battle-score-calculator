@@ -35,6 +35,8 @@ class BattlePointType(str, Enum):
 class BattlePointCalculator:
     def __init__(self):
         self.dict_battle_point = init_recursive_battle_point_dict()
+        with open("ArkPassive.json", "r", encoding="utf-8") as fp:
+            self.dict_arkpassive_point = json.load(fp)
         self.verbose = False  # not thread-safe
 
     def logging(
@@ -81,19 +83,46 @@ class BattlePointCalculator:
                     self.logging(battle_point_type, coeff)
 
                 case BattlePointType.ARKPASSIVE_EVOLUTION:
-                    coeff = dict_battle_point * char.arkpassive_evolution
+                    total_points = 0
+                    for node in char.arkpassive_nodes["진화"]:
+                        if node.tier == 1:  # 스탯에 투자한 포인트는 제외
+                            continue
+
+                        total_points += (
+                            self.dict_arkpassive_point["진화"][node.name] * node.level
+                        )
+
+                    coeff = dict_battle_point * total_points
                     if coeff is not None:
                         result = result * (coeff + 10000) // 10000
                     self.logging(battle_point_type, coeff)
 
                 case BattlePointType.ARKPASSIVE_ENLIGHTMENT:
-                    coeff = dict_battle_point * char.arkpassive_enlightment
+                    total_points = 0
+                    for node in char.arkpassive_nodes["깨달음"]:
+                        total_points += (
+                            self.dict_arkpassive_point["깨달음"][
+                                char.character_class_name
+                            ][node.name]
+                            * node.level
+                        )
+
+                    coeff = dict_battle_point * total_points
                     if coeff is not None:
                         result = result * (coeff + 10000) // 10000
                     self.logging(battle_point_type, coeff)
 
                 case BattlePointType.ARKPASSIVE_LEAP:
-                    coeff = dict_battle_point * char.arkpassive_enlightment
+                    total_points = 0
+                    for node in char.arkpassive_nodes["도약"]:
+                        total_points += (
+                            self.dict_arkpassive_point["도약"][
+                                char.character_class_name
+                            ][node.name]
+                            * node.level
+                        )
+
+                    coeff = dict_battle_point * total_points
                     if coeff is not None:
                         result = result * (coeff + 10000) // 10000
                     self.logging(battle_point_type, coeff)
