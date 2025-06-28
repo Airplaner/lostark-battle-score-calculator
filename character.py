@@ -186,9 +186,10 @@ class CharacterInformation:
         return result
 
     @property
-    def elixir_set(self) -> tuple[str | None, int | None]:
+    def elixir_set(self) -> str | None:
         """
-        플레이어의 엘릭서 세트를 (세트 이름, 활성 단계)으로 반환합니다.
+        플레이어의 엘릭서 세트 이름과 단계를 하나의 문자열로 반환합니다.
+        ex) 회심 2단계
         """
         elixir_set_name: str | None = None
         elixir_set_level: int | None = None
@@ -204,4 +205,6 @@ class CharacterInformation:
                     elixir_set_level = int(matches.group(2))
                     break
 
-        return elixir_set_name, elixir_set_level
+        if elixir_set_name and elixir_set_level:
+            return f"{elixir_set_name} {elixir_set_level}단계"
+        return

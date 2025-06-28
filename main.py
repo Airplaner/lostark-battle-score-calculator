@@ -1,50 +1,21 @@
 import json
 from enum import Enum
+from typing import Literal
 
 from character import CharacterInformation
 
 
-def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint.json"):
+def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint2.json"):
     """
     BattlePoint.json을 읽고, ValueB, ValueC 존재에 따라 다음 둘 중 하나의 형태로 초기화합니다.
     * result[Type] = ValueA
     * result[Type][ValueA] = ValueB
     * result[Type][ValueA][ValueB] = ValueC
     """
-    result = {}
-
-    with open(json_file_path, "r") as fp:
-        raw_battle_point = json.load(fp)
-
-    for item in raw_battle_point:
-        item_type, val_a, val_b, val_c = (
-            item["Type"],
-            item["ValueA"],
-            item["ValueB"],
-            item["ValueC"],
-        )
-        # A만 쓰는 경우
-        if val_b == 0 and val_c == 0:
-            result[item_type] = val_a
-        # A, B만 쓰는 경우
-        elif val_c == 0:  #
-            if item_type not in result:
-                result[item_type] = {}
-            result[item_type][val_a] = val_b
-        # A, B, C 모두 쓰는 경우
-        else:
-            if item_type not in result:
-                result[item_type] = {}
-            if val_a not in result[item_type]:
-                result[item_type][val_a] = {}
-            result[item_type][val_a][val_b] = val_c
+    with open(json_file_path, "r", encoding="utf-8") as fp:
+        result = json.load(fp)
 
     return result
-
-
-def init_ability_dict(json_file_path: str = "Ability.json"):
-    with open(json_file_path, "r") as fp:
-        return json.load(fp)
 
 
 class BattlePointType(str, Enum):
@@ -64,9 +35,6 @@ class BattlePointType(str, Enum):
 class BattlePointCalculator:
     def __init__(self):
         self.dict_battle_point = init_recursive_battle_point_dict()
-        self.dict_ability = init_ability_dict()
-        with open("ElixirSet.json", "r") as fp:
-            self.dict_elixir_set = json.load(fp)
         self.verbose = False  # not thread-safe
 
     def logging(
@@ -80,27 +48,36 @@ class BattlePointCalculator:
                 coeff = 0
             print(f"{battle_point_type} {additional_message} {(10000 + coeff) / 10000}")
 
-    def calc(self, char: CharacterInformation, *, verbose: bool = False) -> int:
-        result = 1000  # base값 찾아야 함
+    def calc(
+        self,
+        char: CharacterInformation,
+        score_type: Literal["attack", "defense"] = "attack",
+        *,
+        verbose: bool = False,
+    ) -> int:
+        result: int = (
+            self.dict_battle_point[score_type][BattlePointType.BASE_ATTACK_POINT]
+            * char.base_attack_point
+        )
 
         for battle_point_type in BattlePointType:
             coeff = 0
-            dict_battle_point: dict | int = self.dict_battle_point[battle_point_type]
+            # 현재 battle point type에 맞는 계수를 가져옴
+            dict_battle_point: dict = self.dict_battle_point[score_type][
+                battle_point_type
+            ]
             match battle_point_type:
-                case BattlePointType.BASE_ATTACK_POINT:
-                    # ValueA가 288인데 뭘까 이게?
-                    ...
-
                 case BattlePointType.LEVEL:
                     char_level = char.character_level
-                    coeff = dict_battle_point.get(char_level)
+                    coeff = dict_battle_point.get(str(char_level))
                     if coeff is not None:
                         result = result * (coeff + 10000) // 10000
                     self.logging(battle_point_type, coeff)
 
                 case BattlePointType.WEAPON_QUALITY:
-                    coeff = dict_battle_point[char.weapon_quality]
-                    result = result * (coeff + 10000) // 10000
+                    coeff = dict_battle_point.get(str(char.weapon_quality))
+                    if coeff:
+                        result = result * (coeff + 10000) // 10000
                     self.logging(battle_point_type, coeff)
 
                 case BattlePointType.ARKPASSIVE_EVOLUTION:
@@ -136,9 +113,8 @@ class BattlePointCalculator:
                 case BattlePointType.ABILITY_ATTACK:
                     for engraving in char.engravings:
                         name, level = engraving
-                        engraving_id: int = self.dict_ability[name]
                         try:
-                            coeff = dict_battle_point[engraving_id][level]
+                            coeff = dict_battle_point[name][str(level)]
                         except KeyError:
                             coeff = 0
 
@@ -146,20 +122,16 @@ class BattlePointCalculator:
                         self.logging(battle_point_type, coeff, name)
 
                 case BattlePointType.ELIXIR_SET:
-                    name, level = char.elixir_set
-                    if name:
-                        elixir_set_id: int = self.dict_elixir_set[name]
-
-                        try:
-                            coeff = self.dict_battle_point[elixir_set_id][level]
-                        except KeyError:
-                            coeff = 0
+                    try:
+                        coeff = dict_battle_point[char.elixir_set]
+                    except KeyError:
+                        coeff = 0
 
                     result = result * (coeff + 10000) // 10000
                     self.logging(
                         battle_point_type,
                         coeff,
-                        f"{name} {level}단계",
+                        char.elixir_set,
                     )
 
         return result

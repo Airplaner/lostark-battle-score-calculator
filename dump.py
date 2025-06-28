@@ -6,7 +6,7 @@ from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 
-BASE = "."
+BASE = "F:\loadumps\868\db"
 
 REGEX_TAG: re.Pattern[str] = re.compile(r"<[^>]+>")
 DICT_BATTLE_STAT = [
@@ -306,7 +306,7 @@ def dump_battle_point_json():
         fp.write(json.dumps(result, ensure_ascii=False, indent=2))
 
 
-def dump_ability_json():
+def dump_ability_json():  # DEPRECATED
     """
     각인을 {이름: id} 객체로 저장합니다.
     """
@@ -327,7 +327,7 @@ def dump_ability_json():
         json.dump(result_dict, fp, ensure_ascii=False)
 
 
-def dump_elixir_set():
+def dump_elixir_set():  # DEPRECATED
     """
     엘릭서 세트 효과 이름을 id과 매핑하여 저장합니다. {'회심': 101}
     """
