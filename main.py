@@ -258,6 +258,7 @@ class BattlePointCalculator:
                             )
                             continue
 
+        # GEM
         for gem in char.gems:
             coeff = d[BattlePointType.GEM][str(gem.tier)][str(gem.level)]
 
@@ -267,6 +268,27 @@ class BattlePointCalculator:
                 coeff,
                 f"{gem.name} {gem.level}",
             )
+
+        # transcendence_armor
+        total_transcendence_grade = 0
+        for equipment in char.equipments:
+            if equipment.equipment_type in [
+                EquipmentType.투구,
+                EquipmentType.어깨,
+                EquipmentType.상의,
+                EquipmentType.하의,
+                EquipmentType.장갑,
+                EquipmentType.무기,
+            ]:
+                if equipment.transcendence_level:
+                    total_transcendence_grade += equipment.transcendence_grade
+        coeff = d[BattlePointType.TRANSCENDENCE_ARMOR] * total_transcendence_grade
+        result = result * (coeff + 10000) // 10000
+        self.logging(
+            BattlePointType.TRANSCENDENCE_ARMOR,
+            coeff,
+        )
+
         return result
 
     def try_get_coeff(self, str_in: str) -> int:
