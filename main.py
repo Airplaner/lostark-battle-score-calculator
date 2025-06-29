@@ -3,7 +3,7 @@ import glob
 import json
 from enum import Enum
 import re
-from typing import Literal
+from typing import Any, Literal
 
 from character import CharacterInformation, EquipmentType
 
@@ -78,7 +78,7 @@ class BattlePointCalculator:
         *,
         verbose: bool = False,
     ) -> int:
-        d = self.dict_battle_point[score_type]
+        d: dict[BattlePointType, Any] = self.dict_battle_point[score_type]
 
         # BASE_ATTACK_POINT
         result: int = d[BattlePointType.BASE_ATTACK_POINT] * char.base_attack_point
@@ -288,6 +288,44 @@ class BattlePointCalculator:
             BattlePointType.TRANSCENDENCE_ARMOR,
             coeff,
         )
+
+        # transcendence_additional
+        target_equipment_type = d[BattlePointType.TRANSCENDENCE_ADDITIONAL].keys()
+
+        for equipment in char.equipments:
+            coeff = 0
+            if equipment.transcendence_grade is None:
+                continue
+
+            et = equipment.equipment_type
+            if et in target_equipment_type:
+                for target_grade, target_coeff in d[
+                    BattlePointType.TRANSCENDENCE_ADDITIONAL
+                ][et].items():
+                    if et == EquipmentType.무기:
+                        # XXX 이유 모름, 무기는 각 옵션마다 적용
+                        if equipment.transcendence_grade >= int(target_grade):
+                            result = result * (target_coeff + 10000) // 10000
+                            self.logging(
+                                BattlePointType.TRANSCENDENCE_ADDITIONAL,
+                                target_coeff,
+                                f"{equipment.name} {equipment.transcendence_grade} >= {target_grade}",
+                            )
+                    else:
+                        # 그 외 부위는 최대값 하나만 적용
+                        if (
+                            equipment.transcendence_grade >= int(target_grade)
+                            and target_coeff > coeff
+                        ):
+                            coeff = target_coeff
+
+            if coeff:
+                result = result * (coeff + 10000) // 10000
+                self.logging(
+                    BattlePointType.TRANSCENDENCE_ADDITIONAL,
+                    coeff,
+                    f"{equipment.name} {equipment.transcendence_grade}",
+                )
 
         return result
 
