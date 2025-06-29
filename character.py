@@ -379,3 +379,21 @@ class CharacterInformation:
         for stat in stats:
             result[stat["Type"]] = int(stat["Value"])
         return result
+
+    @property
+    def card_sets(self) -> list[str]:
+        """
+        플레이어에게 적용 중인 카드 세트들의 목록을 가져옵니다.
+        하나의 카트 세트에 여러 효과가 적용 중인 경우에는 가장 마지막 효과 가져옵니다.
+
+        세우라제 같은 경우 카드 세트는 두 개입니다.
+        """
+        armory_card = self._data["ArmoryCard"]
+        if armory_card is None:
+            return []
+
+        result = []
+        for effect in armory_card["Effects"]:
+            result.append(effect["Items"][-1]["Name"])
+
+        return result

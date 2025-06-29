@@ -339,6 +339,17 @@ class BattlePointCalculator:
             coeff,
         )
 
+        # card_set
+        for card_set in char.card_sets:
+            try:
+                coeff = d[BattlePointType.CARD_SET][card_set]
+            except KeyError:
+                coeff = 0
+
+            if coeff:
+                result = result * (coeff + 10000) // 10000
+                self.logging(BattlePointType.CARD_SET, coeff, card_set)
+
         return result
 
     def try_get_coeff(self, str_in: str) -> int:
