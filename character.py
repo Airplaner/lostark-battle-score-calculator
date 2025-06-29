@@ -399,3 +399,14 @@ class CharacterInformation:
             result.append(effect["Items"][-1]["Name"])
 
         return result
+
+    @property
+    def arkpassive_available_points(
+        self,
+    ) -> dict[Literal["진화", "깨달음", "도약"], int]:
+        result = {}
+        if obj_arkpassive := self._data["ArkPassive"]:
+            for obj_point in obj_arkpassive["Points"]:
+                result[obj_point["Name"]] = obj_point["Value"]
+
+        return result

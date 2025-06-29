@@ -109,6 +109,9 @@ class BattlePointCalculator:
 
             total_points += self.dict_arkpassive_point["진화"][node.name] * node.level
 
+        if total_points > char.arkpassive_available_points["진화"]:
+            raise ValueError("가진 포인트보다 많이 찍힌 상태입니다.")
+
         coeff = d[BattlePointType.ARKPASSIVE_EVOLUTION] * total_points
         result = self.apply(result, coeff, BattlePointType.ARKPASSIVE_EVOLUTION)
 
@@ -122,6 +125,9 @@ class BattlePointCalculator:
                 * node.level
             )
 
+        if total_points > char.arkpassive_available_points["깨달음"]:
+            raise ValueError("가진 포인트보다 많이 찍힌 상태입니다.")
+
         coeff = d[BattlePointType.ARKPASSIVE_ENLIGHTMENT] * total_points
         result = self.apply(result, coeff, BattlePointType.ARKPASSIVE_ENLIGHTMENT)
 
@@ -132,6 +138,9 @@ class BattlePointCalculator:
                 self.dict_arkpassive_point["도약"][char.character_class_name][node.name]
                 * node.level
             )
+
+        if total_points > char.arkpassive_available_points["도약"]:
+            raise ValueError("가진 포인트보다 많이 찍힌 상태입니다.")
 
         coeff = d[BattlePointType.ARKPASSIVE_LEAP] * total_points
         result = self.apply(result, coeff, BattlePointType.ARKPASSIVE_LEAP)
