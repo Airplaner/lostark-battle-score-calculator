@@ -12,7 +12,7 @@ REGEX_IMAGE_TAG = re.compile(r"(?=<img[^>]*><\/img>)")
 REGEX_BR = re.compile(r"<br>", flags=re.IGNORECASE)
 
 # 슬롯 효과 [초월] 7단계 21
-REGEX_TRANSCENDENCE = re.compile(r"슬롯 효과 \[초월\] (\d+)단계 (\d+)")
+REGEX_TRANSCENDENCE = re.compile(r"\[초월\] (\d+)단계 (\d+)")
 
 # [투구] 회심 (투구) Lv.2
 # [상의] 공격력 Lv.5
@@ -115,8 +115,10 @@ class Equipment:
 
             elif t == "IndentStringGroup":
                 top_str = clean(v["Element_000"]["topStr"])
-
                 if top_str.startswith("슬롯 효과"):
+                    top_str = top_str.replace("슬롯 효과", "", 1).strip()
+
+                if top_str.startswith("[초월]"):
                     if matches := re.match(REGEX_TRANSCENDENCE, top_str):
                         self.transcendence_level = int(matches.group(1))
                         self.transcendence_grade = int(matches.group(2))
@@ -197,7 +199,7 @@ class CharacterInformation:
         `<FONT color='#F1D594'>진화</FONT> 1티어 <FONT color='#F1D594'>특화 Lv.30</FONT>`
         위 문자열에서 아크패시브 티어, 이름, 레벨을 가져옵니다.
         """
-        matches = re.search(r"(\d+)티어.*?>([\uAC00-\uD7A3\s]+)\sLv\.(\d+)<", str_in)
+        matches = re.search(r"(\d+)티어.*?>([가-힣A-Z \.]+)\sLv\.(\d+)<", str_in)
         # (\d+)는 숫자 가져오기
         # .*? 는 lazy하게 매칭해서 태그 무시용 >는 태그 닫기까지
         # 이름을 가져오기 위해 한글 (AC00-D7A3)과 공백을 포함하여 매치
