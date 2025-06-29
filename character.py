@@ -18,6 +18,9 @@ REGEX_TRANSCENDENCE = re.compile(r"슬롯 효과 \[초월\] (\d+)단계 (\d+)")
 # [상의] 공격력 Lv.5
 REGEX_ELIXIR_OPTION = re.compile(r"^\[[가-힣]+\] ([가-힣 \(\)]+ Lv\.\d)")
 
+# 8레벨 광휘의 보석
+REGEX_GEM = re.compile(f"(\d+)레벨 ([가-힣]+)의 보석")
+
 
 @dataclass
 class ArkPassiveNode:
@@ -128,6 +131,13 @@ class Equipment:
                 elif top_str.startswith("연성 추가 효과"):
                     # TODO
                     ...
+
+
+@dataclass
+class Gem:
+    name: str
+    tier: int
+    level: int
 
 
 class CharacterInformation:
@@ -333,4 +343,26 @@ class CharacterInformation:
             obj_equipment.parse(equipment)
             result.append(obj_equipment)
 
+        return result
+
+    @property
+    def gems(self) -> list[Gem]:
+        gem_list = jmespath.search("ArmoryGem.Gems", self._data)
+        if not gem_list:
+            return []
+
+        result = []
+        for gem in gem_list:
+            fullname = clean(gem["Name"])
+            if matches := re.match(REGEX_GEM, fullname):
+                level = matches.group(1)
+                name = matches.group(2)
+
+            result.append(
+                Gem(
+                    name=name,
+                    level=level,
+                    tier=4 if name in ["겁화", "작열", "광휘"] else 3,
+                )
+            )
         return result

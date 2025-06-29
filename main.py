@@ -257,6 +257,16 @@ class BattlePointCalculator:
                                 f"{equipment.name} - {effect}",
                             )
                             continue
+
+        for gem in char.gems:
+            coeff = d[BattlePointType.GEM][str(gem.tier)][str(gem.level)]
+
+            result = result * (coeff + 10000) // 10000
+            self.logging(
+                BattlePointType.GEM,
+                coeff,
+                f"{gem.name} {gem.level}",
+            )
         return result
 
     def try_get_coeff(self, str_in: str) -> int:
