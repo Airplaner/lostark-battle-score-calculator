@@ -19,7 +19,7 @@ REGEX_TRANSCENDENCE = re.compile(r"\[초월\] (\d+)단계 (\d+)")
 REGEX_ELIXIR_OPTION = re.compile(r"^\[[가-힣]+\] ([가-힣 \(\)]+ Lv\.\d)")
 
 # 8레벨 광휘의 보석
-REGEX_GEM = re.compile(f"(\d+)레벨 ([가-힣]+)의 보석")
+REGEX_GEM = re.compile(r"(\d+)레벨 ([가-힣]+)의 보석")
 
 
 @dataclass
