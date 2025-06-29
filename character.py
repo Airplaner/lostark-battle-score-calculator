@@ -6,9 +6,17 @@ from typing import Any, Literal
 
 import jmespath
 
-REGEX_KOREAN = r"[가-힣\s]"
+REGEX_KOREAN = r"[가-힣 ]"
 REGEX_TAG = re.compile(r"<[^>]+>")
-REGEX_IMAGE_TAG = re.compile(r"(?=<img[^>]*></img>)")
+REGEX_IMAGE_TAG = re.compile(r"(?=<img[^>]*><\/img>)")
+REGEX_BR = re.compile(r"<br>", flags=re.IGNORECASE)
+
+# 슬롯 효과 [초월] 7단계 21
+REGEX_TRANSCENDENCE = re.compile(r"슬롯 효과 \[초월\] (\d+)단계 (\d+)")
+
+# [투구] 회심 (투구) Lv.2
+# [상의] 공격력 Lv.5
+REGEX_ELIXIR_OPTION = re.compile(r"^\[[가-힣]+\] ([가-힣 \(\)]+ Lv\.\d)")
 
 
 @dataclass
@@ -32,13 +40,94 @@ class EquipmentType(str, Enum):
     팔찌 = "팔찌"
 
 
+def clean(s: str) -> str:
+    s = s.replace("<br>", " ")
+    s = s.replace("<BR>", " ")
+    s = re.sub(REGEX_TAG, "", s)
+    return s.strip()
+
+
+def split_equipment_effects(str_in: str, regex_split=REGEX_IMAGE_TAG) -> list[str]:
+    """
+    장비 옵션들이 HTML 태그와 함께 뭉쳐진 하나의 문자열로 왔을 때,
+    깔끔한 한글로 변환한 뒤 이미지 태그를 기반으로 분리함
+
+    팔찌 효과나 연마 효과는 <br>로 분리할 경우, 두 줄 이상으로 이루어진 옵션이 분리되는 문제가 있음
+    ps. 연마 효과는 이미지가 보이진 않아도 greendot이라는 이미지로 분리 중
+    """
+    result = re.split(regex_split, str_in)
+    result = [clean(i) for i in result if i]
+    return result
+
+
 @dataclass
 class Equipment:
-    name: str
-    equipment_type: EquipmentType
+    name: str = field(init=False)
+    equipment_type: EquipmentType = field(init=False)
     base_effects: list[str] = field(default_factory=list)  # 기본 효과
     grinding_effects: list[str] = field(default_factory=list)  # 연마 효과
     bracelet_effects: list[str] = field(default_factory=list)  # 팔찌 효과
+    transcendence_level: int | None = None  # 7단계
+    transcendence_grade: int | None = None  # 21등급
+    elixir_effects: list[str] = field(default_factory=list)  # 엘릭서 효과
+
+    def parse(self, d: dict):
+        self.equipment_type = d["Type"]
+        self.name = d["Name"]
+        self._parse_tooltip(d["Tooltip"])
+
+    def _parse_tooltip(self, str_tooltip: str):
+        tooltip: dict = json.loads(str_tooltip)
+
+        for e in tooltip.values():
+            if not e:  # null 제외
+                continue
+
+            t = e["type"]
+            v = e["value"]
+
+            if not v:  # null 제외
+                continue
+
+            if t == "ItemPartBox":
+                # Element_000에는 효과의 종류 (기본 효과, 연마 효과 등)
+                # Element_001에는 효과 내용들
+                effect_type = clean(e["value"]["Element_000"])
+                effect_desc = e["value"]["Element_001"]
+                match effect_type:
+                    case "기본 효과":
+                        self.base_effects = split_equipment_effects(
+                            effect_desc, regex_split=REGEX_BR
+                        )
+                    case "연마 효과":
+                        self.grinding_effects = split_equipment_effects(effect_desc)
+                    case "팔찌 효과":
+                        self.bracelet_effects = split_equipment_effects(effect_desc)
+                    case _:
+                        ...
+                        # print("이게멀까요?", effect_type)
+
+            elif t == "IndentStringGroup":
+                top_str = clean(v["Element_000"]["topStr"])
+
+                if top_str.startswith("슬롯 효과"):
+                    if matches := re.match(REGEX_TRANSCENDENCE, top_str):
+                        self.transcendence_level = int(matches.group(1))
+                        self.transcendence_grade = int(matches.group(2))
+                    else:
+                        raise RuntimeError("초월 추출 실패", top_str)
+
+                elif top_str.startswith("[엘릭서] 지혜의 엘릭서"):
+                    for e2 in v["Element_000"]["contentStr"].values():
+                        desc = clean(e2["contentStr"])
+                        if matches := re.match(REGEX_ELIXIR_OPTION, desc):
+                            self.elixir_effects.append(matches.group(1))
+                        else:
+                            raise RuntimeError("엘릭서 연성 효과 추출 실패", desc)
+
+                elif top_str.startswith("연성 추가 효과"):
+                    # TODO
+                    ...
 
 
 class CharacterInformation:
@@ -240,65 +329,8 @@ class CharacterInformation:
 
         equipments = jmespath.search("ArmoryEquipment", self._data)
         for equipment in equipments:
-            obj_equipment = Equipment(
-                name=equipment["Name"],
-                equipment_type=equipment["Type"],
-            )
-
-            # 일단 악세만
-            if equipment["Type"] not in ["목걸이", "귀걸이", "반지", "팔찌"]:
-                continue
-
-            tooltip: dict = json.loads(equipment["Tooltip"])
-
-            # with open(f"{equipment['Name']}.json", "w", encoding="utf-8") as fp:
-            #     json.dump(tooltip, fp, ensure_ascii=False, indent=2)
-
-            for element_id, element in tooltip.items():
-                if not element:
-                    continue
-
-                # 모든 Element는 null이 아니라면 반드시
-                # type, value 두 개의 field를 가지고 있다고 가정
-
-                # 연마 효과, 기본 효과, 팔찌 효과는 ItemPartBox 타입에 있음
-                if element["type"] == "ItemPartBox":
-                    if not isinstance(element["value"], dict):
-                        continue
-
-                    # 반드시 Element_000에는 효과 종류, Elment_001에는 효과들있다고 가정
-                    effect_type = re.sub(REGEX_TAG, "", element["value"]["Element_000"])
-                    effect_desc = element["value"]["Element_001"]
-                    match effect_type:
-                        case "기본 효과":
-                            obj_equipment.base_effects = self.split_equipment_effects(
-                                effect_desc
-                            )
-                        case "연마 효과":
-                            obj_equipment.grinding_effects = (
-                                self.split_equipment_effects(effect_desc)
-                            )
-                        case "팔찌 효과":
-                            obj_equipment.bracelet_effects = (
-                                self.split_equipment_effects(effect_desc)
-                            )
-                        case _:
-                            ...
-                            # print("이게멀까요?", effect_type)
-
+            obj_equipment = Equipment()
+            obj_equipment.parse(equipment)
             result.append(obj_equipment)
 
-        return result
-
-    @staticmethod
-    def split_equipment_effects(str_in: str) -> list[str]:
-        """
-        장비 옵션들이 HTML 태그와 함께 뭉쳐진 하나의 문자열로 왔을 때,
-        깔끔한 한글로 반환
-        """
-        str_in = str_in.lower()
-        str_in = str_in.replace("<br>", " ")
-        result = re.split(REGEX_IMAGE_TAG, str_in)
-        result = [re.sub(REGEX_TAG, "", i) for i in result if i]
-        result = [i.strip() for i in result if i]
         return result
