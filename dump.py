@@ -19,13 +19,14 @@ DICT_BATTLE_STAT = [
     "숙련",
 ]  # 출처를 못 찾아서 하드코딩
 DICT_EQUIPMENT_TYPE = {
-    160: "무기",
-    161: "투구",
-    162: "상의",
-    163: "하의",
-    164: "장갑",
-    165: "어깨",
-}  # 출처를 못 찾아서 하드코딩, 숫자는 item 뒤에 부위별 값, 문자열은 OPENAPI의 ArmoryEquipment.Type 기준
+    160: "투구",
+    161: "상의",
+    162: "하의",
+    163: "장갑",
+    164: "어깨",
+    165: "무기",
+}  # ItemTranscendenceSet.db 기준. 일반적인 장비 순서와 다름
+# 문자열은 OPENAPI의 ArmoryEquipment.Type 값 기준으로 설정함
 
 
 class BattlePointType(str, Enum):
