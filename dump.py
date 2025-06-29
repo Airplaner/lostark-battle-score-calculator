@@ -192,9 +192,10 @@ def dump_battle_point_json():
         ]:
             desc = game_msg.find(
                 cur.execute(
-                    f"SELECT DescLv{val_b} FROM ItemElixirOption WHERE SecondaryKey = {val_a}"
+                    f"SELECT Title FROM ItemElixirOption WHERE SecondaryKey = {val_a}"
                 ).fetchone()[0]
             )
+            desc += f" Lv.{val_b}"
 
             if bp not in result[pk]:
                 result[pk][bp] = {}
