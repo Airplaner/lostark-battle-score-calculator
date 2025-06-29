@@ -279,6 +279,8 @@ class CharacterInformation:
         플레이어의 모든 각인을 (이름, 종합 레벨) tuple의 list로 반환합니다.
         """
         items = jmespath.search("ArmoryEngraving.ArkPassiveEffects", self._data)
+        if not items:
+            return []
         result = list()
 
         for item in items:
