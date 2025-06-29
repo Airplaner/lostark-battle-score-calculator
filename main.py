@@ -5,6 +5,9 @@ from enum import Enum
 import re
 from typing import Any, Literal
 
+import numpy as np
+
+
 from character import CharacterInformation, EquipmentType
 
 
@@ -58,7 +61,7 @@ class BattlePointCalculator:
 
     def apply(
         self,
-        result: int,
+        result,
         coeff_in: int | None,
         battle_point_type: BattlePointType,
         additional_message: str = "",
@@ -68,17 +71,22 @@ class BattlePointCalculator:
         if coeff_in is None or coeff_in == 0:
             return result
 
-        coeff = Decimal(coeff_in)
-        val_base = Decimal(pow(10, base))
-        increase_rate = (val_base + coeff) / val_base
-        result = result * increase_rate
-        result = Decimal(int(result))
+        factory = np.float32
+        # factory = Decimal
+
+        coeff = factory(coeff_in)
+        result += factory(result) * factory(coeff) / factory(pow(10, base))
 
         if self.verbose:
-            increase = ((coeff + val_base) / val_base - 1) * 100
-            print(f"{battle_point_type} {additional_message} +{increase:.{base - 2}f}%")
+            increase_rate_for_show = (
+                (Decimal(coeff_in) + Decimal(pow(10, base))) / Decimal(pow(10, base))
+                - 1
+            ) * 100
+            print(
+                f"{battle_point_type} {additional_message} +{increase_rate_for_show:.{base - 2}f}%"
+            )
+            print(result)
 
-        result = int(result)
         return result
 
     def calc(
@@ -363,8 +371,13 @@ class BattlePointCalculator:
         )
 
         print("실제 전투력:", real_combat_power)
-        print("계산 전투력:", result / Decimal(1000000))
-        return result
+        if isinstance(result, Decimal):
+            response = result / 1000000
+        else:
+            response = np.round(result / 10000) / 100
+        print("계산 전투력:", response, result)
+
+        return response
 
     def try_get_coeff(self, str_in: str) -> int:
         coeff = self.find_by_regex(
@@ -403,9 +416,10 @@ class BattlePointCalculator:
 # GET /armories/characters/{characterName} 응답을 json으로 저장하여 사용
 
 calculator = BattlePointCalculator()
-calculator.verbose = True
-for fname in glob.glob("character*.json"):
+calculator.verbose = False
+for fname in glob.glob("correct/character*.json"):
     print("=" * 100)
     print(fname)
     character_info = CharacterInformation(json.load(open(fname, "rb")))
-    calculator.calc(character_info)
+    r = calculator.calc(character_info)
+    print(r)
