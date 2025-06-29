@@ -2,7 +2,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Literal
+from typing import Any, Literal, TypeAlias
 
 import jmespath
 
@@ -41,6 +41,9 @@ class EquipmentType(str, Enum):
     귀걸이 = "귀걸이"
     반지 = "반지"
     팔찌 = "팔찌"
+
+
+StatType: TypeAlias = Literal["치명", "특화", "제압", "신속", "인내", "숙련"]
 
 
 def clean(s: str) -> str:
@@ -365,4 +368,12 @@ class CharacterInformation:
                     tier=4 if name in ["겁화", "작열", "광휘"] else 3,
                 )
             )
+        return result
+
+    @property
+    def battle_stat(self) -> dict[StatType, int]:
+        stats = jmespath.search("ArmoryProfile.Stats", self._data)
+        result = {}
+        for stat in stats:
+            result[stat["Type"]] = int(stat["Value"])
         return result

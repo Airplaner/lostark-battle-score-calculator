@@ -327,6 +327,18 @@ class BattlePointCalculator:
                     f"{equipment.name} {equipment.transcendence_grade}",
                 )
 
+        # battle_stat
+        coeff = 0
+        for stat_type, value in char.battle_stat.items():
+            if stat_type in d[BattlePointType.BATTLESTAT]:
+                coeff += value * d[BattlePointType.BATTLESTAT][stat_type]
+
+        result = result * (coeff + 10000) // 10000
+        self.logging(
+            BattlePointType.BATTLESTAT,
+            coeff,
+        )
+
         return result
 
     def try_get_coeff(self, str_in: str) -> int:
