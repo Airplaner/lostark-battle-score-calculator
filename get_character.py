@@ -3,9 +3,10 @@ import json
 
 with open("jwt.txt", "r") as fp:
     jwt = fp.read()
-with open("charnames,txt", "r") as fp:
+with open("charnames.txt", "r", encoding="utf-8") as fp:
     charnames = fp.readlines()
 for charname in charnames:
+    charname = charname.strip()
     res = requests.get(
         f"https://developer-lostark.game.onstove.com/armories/characters/{charname}",
         headers={"authorization": f"Bearer {jwt}"},
