@@ -131,6 +131,7 @@ def dump_battle_point_json():
         "ItemElixirOptionSet",
         "ItemElixirOption",
         "SeasonCardBook",
+        "ItemGradeOptionRandom",
     ]:
         fname = f"{BASE}/EFTable_{db}.db"
         if not Path(fname).exists():
@@ -214,8 +215,42 @@ def dump_battle_point_json():
             BattlePointType.BRACELET_ADDONTYPE_ATTACK,
             BattlePointType.BRACELET_ADDONTYPE_DEFENSE,
         ]:
+            # 특수 처리들
+            if (bp, val_a, val_b) == (BattlePointType.ACCESSORY_GRINDING_ATTACK, 2, 0):
+                msg = "아군 공격력 강화 +\+([0-9.]+)%$"
+            elif (bp, val_a, val_b) == (
+                BattlePointType.ACCESSORY_GRINDING_ATTACK,
+                3,
+                0,
+            ):
+                msg = "아군 피해량 강화 +\+([0-9.]+)%$"
+            elif (bp, val_a, val_b) == (
+                BattlePointType.ACCESSORY_GRINDING_DEFENSE,
+                2,
+                0,
+            ):
+                msg = "파티원 보호막 효과 +\+([0-9.]+)%$"
+            elif (bp, val_a, val_b) == (
+                BattlePointType.ACCESSORY_GRINDING_DEFENSE,
+                3,
+                0,
+            ):
+                msg = "파티원 회복 효과 +\+([0-9.]+)%$"
+            elif (bp, val_a, val_b) == (
+                BattlePointType.BRACELET_STATTYPE,
+                2,
+                0,
+            ):
+                msg = "아군 공격력 강화 +\+([0-9.]+)%$"
+            elif (bp, val_a, val_b) == (
+                BattlePointType.BRACELET_STATTYPE,
+                3,
+                0,
+            ):
+                msg = "아군 피해량 강화 +\+([0-9.]+)%$"
+
             # ValueA가 1이면 Enum.xml의 값 참조
-            if val_a == 1:
+            elif val_a == 1:
                 stat_name = stat_type[val_b]
                 msg = game_msg.find(f"tip.name.enum_stattype_{stat_name}")
 
@@ -228,12 +263,9 @@ def dump_battle_point_json():
 
             # Value가 3이면 Ability 사용
             elif val_a == 3:
-                if val_b == 0:  # 이건 모르겠음
-                    msg = f"UNKNOWN {val_a} {val_b}"
-                else:
-                    # XXX Ability 테이블에 tip.desc.ability_11044가 담긴 Desc같은 게 없음
-                    # 이렇게 조합할 리는 없을건데, 다른 테이블에 있는지 확인 필요
-                    msg = game_msg.find(f"tip.desc.ability_{val_b}")
+                # XXX Ability 테이블에 tip.desc.ability_11044가 담긴 Desc같은 게 없음
+                # 이렇게 조합할 리는 없을건데, 다른 테이블에 있는지 확인 필요
+                msg = game_msg.find(f"tip.desc.ability_{val_b}")
 
             # ValueA가 4면 CombatEffect 사용
             elif val_a == 4:
@@ -254,7 +286,17 @@ def dump_battle_point_json():
                     arg = Decimal(arg) / Decimal(100)  # 부동소숫점 문제 방지
                     arg = f"+{arg:.2f}"  # 앞에 +붙이고, 2 대신 2.00
                     msg = str.format(msg, arg)
+            elif (
+                bp == BattlePointType.ACCESSORY_GRINDING_ADDONTYPE_ATTACK
+                and val_a == 29
+            ):
+                # 출처를 찾을 수 없으나, 계수를 통해서 추정
+                desc = cur.execute(
+                    f"SELECT ReplaceDesc FROM ItemGradeOptionRandom WHERE Type = {val_a} AND KeyIndex = {val_b}"
+                ).fetchone()[0]
+                msg = game_msg.find(desc)
             else:
+                # 모름
                 msg = f"UNKNOWN {val_a} {val_b}"  # XXX 서폿쪽
 
             if bp not in result[pk]:
