@@ -217,13 +217,13 @@ def dump_battle_point_json():
         ]:
             # 특수 처리들
             if (bp, val_a, val_b) == (BattlePointType.ACCESSORY_GRINDING_ATTACK, 2, 0):
-                msg = "아군 공격력 강화 +\+([0-9.]+)%$"
+                msg = "아군 공격력 강화 효과 +\+([0-9.]+)%$"
             elif (bp, val_a, val_b) == (
                 BattlePointType.ACCESSORY_GRINDING_ATTACK,
                 3,
                 0,
             ):
-                msg = "아군 피해량 강화 +\+([0-9.]+)%$"
+                msg = "아군 피해량 강화 효과 +\+([0-9.]+)%$"
             elif (bp, val_a, val_b) == (
                 BattlePointType.ACCESSORY_GRINDING_DEFENSE,
                 2,
@@ -241,13 +241,13 @@ def dump_battle_point_json():
                 2,
                 0,
             ):
-                msg = "아군 공격력 강화 +\+([0-9.]+)%$"
+                msg = "아군 공격력 강화 효과 +\+([0-9.]+)%$"
             elif (bp, val_a, val_b) == (
                 BattlePointType.BRACELET_STATTYPE,
                 3,
                 0,
             ):
-                msg = "아군 피해량 강화 +\+([0-9.]+)%$"
+                msg = "아군 피해량 강화 효과 +\+([0-9.]+)%$"
 
             # ValueA가 1이면 Enum.xml의 값 참조
             elif val_a == 1:
