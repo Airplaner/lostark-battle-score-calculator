@@ -199,7 +199,7 @@ class CharacterInformation:
         `<FONT color='#F1D594'>진화</FONT> 1티어 <FONT color='#F1D594'>특화 Lv.30</FONT>`
         위 문자열에서 아크패시브 티어, 이름, 레벨을 가져옵니다.
         """
-        matches = re.search(r"(\d+)티어.*?>([가-힣A-Z \.]+)\sLv\.(\d+)<", str_in)
+        matches = re.search(r"(\d+)티어.*?>([가-힣A-Z \.\?\!]+)\sLv\.(\d+)<", str_in)
         # (\d+)는 숫자 가져오기
         # .*? 는 lazy하게 매칭해서 태그 무시용 >는 태그 닫기까지
         # 이름을 가져오기 위해 한글 (AC00-D7A3)과 공백을 포함하여 매치
