@@ -68,37 +68,45 @@ class BattlePointCalculator:
         if coeff_in is None or coeff_in == 0:
             return result
 
-        coeff = Decimal(coeff_in)
-        val_base = Decimal(pow(10, base))
-        increase_rate = (val_base + coeff) / val_base
-        result = result * increase_rate
-        result = Decimal(int(result))
+        result += result * coeff_in // pow(10, base)
 
         if self.verbose:
-            increase = ((coeff + val_base) / val_base - 1) * 100
+            increase = ((coeff_in + pow(10, base)) / pow(10, base) - 1) * 100
             print(f"{battle_point_type} {additional_message} +{increase:.{base - 2}f}%")
 
-        result = int(result)
         return result
 
     def calc(
         self,
         char: CharacterInformation,
         score_type: Literal["attack", "defense"] = "attack",
-        *,
-        verbose: bool = False,
     ) -> int:
         d: dict[BattlePointType, Any] = self.dict_battle_point[score_type]
 
         # BASE_ATTACK_POINT
+        # 공격 점수 (서폿의 경우 버프 점수)
         result = d[BattlePointType.BASE_ATTACK_POINT] * char.base_attack_point
+        print("공격 점수", result / Decimal(1000000))
+
+        # BASE_HEALTH_POINT
+        # 서폿 점수 계산할 때만 사용됨, 케어 점수
+        result2 = 0
+        if score_type == "defense":
+            result2 = d[BattlePointType.BASE_HEALTH_POINT] * char.base_health_point
+            print("케어 점수", result2 / Decimal(10000))
 
         # LEVEL
-        coeff = d[BattlePointType.LEVEL].get(str(char.character_level))
+        try:
+            coeff = d[BattlePointType.LEVEL][str(char.character_level)]
+        except KeyError:
+            coeff = 0
         result = self.apply(result, coeff, BattlePointType.LEVEL)
 
         # WEAPON_QUALITY
-        coeff = d[BattlePointType.WEAPON_QUALITY].get(str(char.weapon_quality))
+        try:
+            coeff = d[BattlePointType.WEAPON_QUALITY][str(char.weapon_quality)]
+        except KeyError:
+            coeff = 0
         result = self.apply(result, coeff, BattlePointType.WEAPON_QUALITY)
 
         # ARKPASSIVE_EVOLUTION
@@ -150,7 +158,7 @@ class BattlePointCalculator:
         result = self.apply(result, coeff, BattlePointType.KARMA_EVOLUTIONRANK)
 
         # KARMA_LEAPLEVEL:
-        coeff = d[BattlePointType.KARMA_LEAPLEVEL] * char.karma_leaplevel
+        coeff = d.get(BattlePointType.KARMA_LEAPLEVEL, 0) * char.karma_leaplevel
         result = self.apply(result, coeff, BattlePointType.KARMA_LEAPLEVEL)
 
         # ABILITY_ATTACK:
@@ -162,6 +170,16 @@ class BattlePointCalculator:
                 coeff = None
 
             result = self.apply(result, coeff, BattlePointType.ABILITY_ATTACK, name)
+
+        # ABILITY_DEFENSE:
+        for engraving in char.engravings:
+            name, level = engraving
+            try:
+                coeff = d[BattlePointType.ABILITY_DEFENSE][name][str(level)]
+            except KeyError:
+                coeff = 0
+
+            result2 = self.apply(result2, coeff, BattlePointType.ABILITY_DEFENSE, name)
 
         # ELIXIR_SET:
         try:
@@ -191,8 +209,29 @@ class BattlePointCalculator:
                     f"{equipment.name} - {effect}",
                 )
 
+        # ELIXIR_GRADE_DEFENSE
+
+        for equipment in char.equipments:
+            if equipment.equipment_type not in [
+                EquipmentType.투구,
+                EquipmentType.상의,
+                EquipmentType.어깨,
+                EquipmentType.하의,
+                EquipmentType.장갑,
+            ]:
+                continue
+            for effect in equipment.elixir_effects:
+                coeff = self.find_by_str(
+                    effect, d[BattlePointType.ELIXIR_GRADE_DEFENSE]
+                )
+                result2 = self.apply(
+                    result2,
+                    coeff,
+                    BattlePointType.ELIXIR_GRADE_DEFENSE,
+                    f"{equipment.name} - {effect}",
+                )
+
         # ACCESSORY_GRINDING_ATTACK
-        # ACCESSORY_GRINDING_DEFENSE
 
         for equipment in char.equipments:
             if equipment.equipment_type not in [
@@ -217,8 +256,32 @@ class BattlePointCalculator:
                         base=8,
                     )
 
+        # ACCESSORY_GRINDING_DEFENSE
+
+        for equipment in char.equipments:
+            if equipment.equipment_type not in [
+                EquipmentType.목걸이,
+                EquipmentType.귀걸이,
+                EquipmentType.반지,
+            ]:
+                continue
+
+            for effect in equipment.grinding_effects:
+                coeff = self.find_by_regex(
+                    effect,
+                    d[BattlePointType.ACCESSORY_GRINDING_DEFENSE],
+                )
+
+                if coeff:
+                    result2 = self.apply(
+                        result2,
+                        coeff,
+                        BattlePointType.ACCESSORY_GRINDING_DEFENSE,
+                        f"{equipment.name} - {effect}",
+                        base=8,
+                    )
+
         # ACCESSORY_GRINDING_ADDONTYPE_ATTACK
-        # ACCESSORY_GRINDING_ADDONTYPE_DEFENSE
 
         for equipment in char.equipments:
             if equipment.equipment_type not in [
@@ -278,6 +341,25 @@ class BattlePointCalculator:
                         result,
                         coeff,
                         BattlePointType.BRACELET_ADDONTYPE_ATTACK,
+                        f"{equipment.name} - {effect}",
+                    )
+
+        # BRACELET_ADDONTYPE_DEFENSE
+
+        for equipment in char.equipments:
+            if equipment.equipment_type != EquipmentType.팔찌:
+                continue
+
+            for effect in equipment.bracelet_effects:
+                coeff = self.find_by_str(
+                    effect,
+                    d[BattlePointType.BRACELET_ADDONTYPE_DEFENSE],
+                )
+                if coeff:
+                    result2 = self.apply(
+                        result2,
+                        coeff,
+                        BattlePointType.BRACELET_ADDONTYPE_DEFENSE,
                         f"{equipment.name} - {effect}",
                     )
 
@@ -353,7 +435,10 @@ class BattlePointCalculator:
             result = self.apply(result, coeff, BattlePointType.CARD_SET, card_set)
 
         # pet_specialty
-        coeff = d[BattlePointType.PET_SPECIALTY]["추가 피해 1% 증가"]
+        try:
+            coeff = d[BattlePointType.PET_SPECIALTY]["추가 피해 1% 증가"]
+        except KeyError:
+            coeff = 0
         result = self.apply(
             result, coeff, BattlePointType.PET_SPECIALTY, "추가 피해 1% 증가"
         )
@@ -362,9 +447,23 @@ class BattlePointCalculator:
             char._data["ArmoryProfile"]["CombatPower"].replace(",", "")
         )
 
-        print("실제 전투력:", real_combat_power)
-        print("계산 전투력:", result / Decimal(1000000))
-        return result
+        if self.verbose:
+            print("실제 전투력:", real_combat_power)
+
+        if score_type == "attack":
+            if self.verbose:
+                print("계산 전투력:", result / Decimal(1000000))
+            final_result = result / Decimal(10000)
+        if score_type == "defense":
+            if self.verbose:
+                print("계산 버프 전투력:", result / Decimal(1000000))
+                print("계산 케어 전투력:", result2 / Decimal(10000))
+                print(
+                    "계산 전투력:", result / Decimal(1000000) + result2 / Decimal(10000)
+                )
+            final_result = result / Decimal(10000) + result2 / Decimal(100)
+
+        return round(final_result)
 
     def try_get_coeff(self, str_in: str) -> int:
         coeff = self.find_by_regex(
@@ -408,4 +507,5 @@ for fname in glob.glob("character*.json"):
     print("=" * 100)
     print(fname)
     character_info = CharacterInformation(json.load(open(fname, "rb")))
-    calculator.calc(character_info)
+    r = calculator.calc(character_info, score_type="defense")
+    print(r)

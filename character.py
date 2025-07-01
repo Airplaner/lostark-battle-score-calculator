@@ -171,6 +171,19 @@ class CharacterInformation:
                 raise RuntimeError("기본 공격력 찾기 실패")
 
     @property
+    def base_health_point(self) -> int:
+        """
+        플레이어의 최대 생명력을 반환합니다.
+        XXX 만찬이나 음식, 카제로스 전장판 같은 일시적인 버프가 포함되는 문제가 있음
+        """
+        return int(
+            jmespath.search(
+                "ArmoryProfile.Stats[?Type=='최대 생명력'].Value",
+                self._data,
+            )[0]
+        )
+
+    @property
     def character_level(self) -> int:
         """전투 레벨"""
         return int(jmespath.search("ArmoryProfile.CharacterLevel", self._data))
