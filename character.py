@@ -27,6 +27,9 @@ REGEX_BASE_ATTACK_POINT = re.compile(
 
 REGEX_KARMA = re.compile(r"^(\d)랭크 (\d+)레벨$")
 
+# 진화 1티어 특화 Lv.30
+REGEX_ARKPASSIVE_NODE = re.compile(r"(\d)티어 ([가-힣A-Z \.\?\!]+) Lv\.(\d+)$")
+
 
 @dataclass
 class ArkPassiveNode:
@@ -251,7 +254,6 @@ class CharacterInformation:
         if gem_list:
             for gem in gem_list:
                 fullname = clean(gem["Name"])
-                print(fullname)
                 if matches := re.match(REGEX_GEM, fullname):
                     level = matches.group(1)
                     name = matches.group(2)
@@ -279,8 +281,15 @@ class CharacterInformation:
         }
         for effect in data["ArkPassive"]["Effects"]:
             group = effect["Name"]
-            desc = effect["Description"]
-            tier, name, level = self.parse_arkpassive_effect_description(desc)
+            desc = clean(effect["Description"])
+            if matches := re.search(REGEX_ARKPASSIVE_NODE, desc):
+                tier, name, level = (
+                    int(matches.group(1)),
+                    str(matches.group(2)),
+                    int(matches.group(3)),
+                )
+            else:
+                raise RuntimeError(f"아크 패시브 노드 파싱 실패: {desc}")
 
             self.arkpassive_nodes[group].append(
                 ArkPassiveNode(
@@ -332,26 +341,6 @@ class CharacterInformation:
 
         return None
         raise RuntimeError("무기 품질 찾기 실패")
-
-    def parse_arkpassive_effect_description(self, str_in: str) -> tuple[int, str, int]:
-        """
-        `<FONT color='#F1D594'>진화</FONT> 1티어 <FONT color='#F1D594'>특화 Lv.30</FONT>`
-        위 문자열에서 아크패시브 티어, 이름, 레벨을 가져옵니다.
-        """
-        matches = re.search(r"(\d+)티어.*?>([가-힣A-Z \.\?\!]+)\sLv\.(\d+)<", str_in)
-        # (\d+)는 숫자 가져오기
-        # .*? 는 lazy하게 매칭해서 태그 무시용 >는 태그 닫기까지
-        # 이름을 가져오기 위해 한글 (AC00-D7A3)과 공백을 포함하여 매치
-        # 하나의 공백 (\s) 이후 Lv 데이터 가져오기
-        if matches is not None:
-            tier, name, level = (
-                int(matches.group(1)),
-                str(matches.group(2)),
-                int(matches.group(3)),
-            )
-        else:
-            raise ValueError("주어진 문자열이 올바른 포맷이 아닙니다.")
-        return tier, name, level
 
     @property
     def elixir_set(self) -> str | None:
