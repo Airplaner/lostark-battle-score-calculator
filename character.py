@@ -28,10 +28,10 @@ REGEX_BASE_ATTACK_POINT = re.compile(
 
 @dataclass
 class ArkPassiveNode:
-    name: str
-    level: int
-    tier: int
-    desc: str
+    name: str  # 이름
+    level: int  # 레벨 (1-5)
+    tier: int  # 티어 (1-4)
+    desc: str  # 설명
 
 
 class EquipmentType(str, Enum):
@@ -182,6 +182,7 @@ class CharacterInformation:
     engravings: list[Engraving]
     card_sets: list[str]
     gems: list[Gem]
+    arkpassive_nodes: dict[Literal["진화", "깨달음", "도약"], list[ArkPassiveNode]]
 
     def __init__(self, data: dict):
         self._data = data
@@ -262,6 +263,31 @@ class CharacterInformation:
                     )
                 )
 
+        # ArkPassive
+        """
+        캐릭터의 모든 아크패시브 노드
+        """
+        self.arkpassive_nodes: dict[
+            Literal["진화", "깨달음", "도약"], list[ArkPassiveNode]
+        ] = {
+            "진화": [],
+            "깨달음": [],
+            "도약": [],
+        }
+        for effect in data["ArkPassive"]["Effects"]:
+            group = effect["Name"]
+            desc = effect["Description"]
+            tier, name, level = self.parse_arkpassive_effect_description(desc)
+
+            self.arkpassive_nodes[group].append(
+                ArkPassiveNode(
+                    tier=tier,
+                    level=level,
+                    name=name,
+                    desc=desc,
+                )
+            )
+
     @property
     def weapon_quality(self) -> int | None:
         """무기 품질"""
@@ -300,33 +326,6 @@ class CharacterInformation:
         else:
             raise ValueError("주어진 문자열이 올바른 포맷이 아닙니다.")
         return tier, name, level
-
-    @property
-    def arkpassive_nodes(
-        self,
-    ) -> dict[Literal["진화", "깨달음", "도약"], list[ArkPassiveNode]]:
-        """아크패시브 노드"""
-        result: dict[str, list] = {
-            "진화": [],
-            "깨달음": [],
-            "도약": [],
-        }
-        effects = jmespath.search("ArkPassive.Effects", self._data)
-        for effect in effects:
-            group = effect["Name"]
-            desc = effect["Description"]
-            tier, name, level = self.parse_arkpassive_effect_description(desc)
-
-            result[group].append(
-                ArkPassiveNode(
-                    tier=tier,
-                    level=level,
-                    name=name,
-                    desc=desc,
-                )
-            )
-
-        return result
 
     def parse_arkpassive_points_description(self, str_in: str) -> tuple[int, int]:
         """
