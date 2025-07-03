@@ -214,6 +214,18 @@ class CharacterInformation:
                 )
             )
 
+        # ArmoryCard
+        self.card_sets: list[str] = []
+        """
+        캐릭터에게 적용 중인 카드 세트들의 목록을 가져옵니다.
+        하나의 카트 세트에 여러 효과가 적용 중인 경우에는 가장 마지막 효과만 가져옵니다.
+        ex) 세구빛 30각인 경우 30각 효과만 가져옴
+        """
+        armory_card = self._data["ArmoryCard"]
+        if armory_card is not None:
+            for effect in armory_card["Effects"]:
+                self.card_sets.append(effect["Items"][-1]["Name"])
+
     @property
     def weapon_quality(self) -> int | None:
         """무기 품질"""
@@ -383,24 +395,6 @@ class CharacterInformation:
         result = {}
         for stat in stats:
             result[stat["Type"]] = int(stat["Value"])
-        return result
-
-    @property
-    def card_sets(self) -> list[str]:
-        """
-        플레이어에게 적용 중인 카드 세트들의 목록을 가져옵니다.
-        하나의 카트 세트에 여러 효과가 적용 중인 경우에는 가장 마지막 효과 가져옵니다.
-
-        세우라제 같은 경우 카드 세트는 두 개입니다.
-        """
-        armory_card = self._data["ArmoryCard"]
-        if armory_card is None:
-            return []
-
-        result = []
-        for effect in armory_card["Effects"]:
-            result.append(effect["Items"][-1]["Name"])
-
         return result
 
     @property
