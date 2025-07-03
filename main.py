@@ -222,7 +222,7 @@ class BattlePointCalculator:
                 continue
             for effect in equipment.elixir_effects:
                 coeff = self.find_by_str(
-                    effect, d[BattlePointType.ELIXIR_GRADE_DEFENSE]
+                    effect, d.get(BattlePointType.ELIXIR_GRADE_DEFENSE, {})
                 )
                 result2 = self.apply(
                     result2,
@@ -269,7 +269,7 @@ class BattlePointCalculator:
             for effect in equipment.grinding_effects:
                 coeff = self.find_by_regex(
                     effect,
-                    d[BattlePointType.ACCESSORY_GRINDING_DEFENSE],
+                    d.get(BattlePointType.ACCESSORY_GRINDING_DEFENSE, {}),
                 )
 
                 if coeff:
@@ -353,7 +353,7 @@ class BattlePointCalculator:
             for effect in equipment.bracelet_effects:
                 coeff = self.find_by_str(
                     effect,
-                    d[BattlePointType.BRACELET_ADDONTYPE_DEFENSE],
+                    d.get(BattlePointType.BRACELET_ADDONTYPE_DEFENSE, {}),
                 )
                 if coeff:
                     result2 = self.apply(
