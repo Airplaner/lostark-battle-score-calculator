@@ -210,25 +210,26 @@ class CharacterInformation:
         캐릭터의 각인
         """
         self.engravings: list[Engraving] = []
-        for item in data["ArmoryEngraving"]["ArkPassiveEffects"]:
-            self.engravings.append(
-                Engraving(
-                    name=item["Name"],
-                    ability_stone_level=item["AbilityStoneLevel"]
-                    if item["AbilityStoneLevel"] is not None
-                    else 0,
-                    level=item["Level"],
-                    grade=item["Grade"],
+        if data["ArmoryEngraving"] is not None:
+            for item in data["ArmoryEngraving"]["ArkPassiveEffects"]:
+                self.engravings.append(
+                    Engraving(
+                        name=item["Name"],
+                        ability_stone_level=item["AbilityStoneLevel"]
+                        if item["AbilityStoneLevel"] is not None
+                        else 0,
+                        level=item["Level"],
+                        grade=item["Grade"],
+                    )
                 )
-            )
 
         # ArmoryCard
-        self.card_sets: list[str] = []
         """
-        캐릭터에게 적용 중인 카드 세트들의 목록을 가져옵니다.
+        캐릭터에게 적용 중인 카드 세트 목록
         하나의 카트 세트에 여러 효과가 적용 중인 경우에는 가장 마지막 효과만 가져옵니다.
         ex) 세구빛 30각인 경우 30각 효과만 가져옴
         """
+        self.card_sets: list[str] = []
         armory_card = self._data["ArmoryCard"]
         if armory_card is not None:
             for effect in armory_card["Effects"]:
