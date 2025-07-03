@@ -184,6 +184,7 @@ class CharacterInformation:
     base_attack_point: int  # 기본 공격력
     base_health_point: int  # 최대 생명력
     character_level: int  # 전투 레벨
+    character_class_name: str
     engravings: list[Engraving]
     card_sets: list[str]
     gems: list[Gem]
@@ -210,10 +211,11 @@ class CharacterInformation:
                 self.base_health_point = int(stat["Value"])
 
         # level
-        """
-        캐릭터의 전투 레벨
-        """
+        """캐릭터의 전투 레벨"""
         self.character_level = data["ArmoryProfile"]["CharacterLevel"]
+
+        """캐릭터의 직업"""
+        self.character_class_name = data["ArmoryProfile"]["CharacterClassName"]
 
         # ArmoryEngraving
         """
@@ -365,11 +367,6 @@ class CharacterInformation:
         if elixir_set_name and elixir_set_level:
             return f"{elixir_set_name} {elixir_set_level}단계"
         return
-
-    @property
-    def character_class_name(self) -> str:
-        """클래스명"""
-        return jmespath.search("ArmoryProfile.CharacterClassName", self._data)
 
     @property
     def equipments(self) -> list[Equipment]:
