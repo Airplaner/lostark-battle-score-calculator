@@ -154,7 +154,7 @@ class Equipment:
                     top_str = top_str.replace("슬롯 효과", "", 1).strip()
 
                 if top_str.startswith("[초월]"):
-                    if matches := re.match(REGEX_TRANSCENDENCE, top_str):
+                    if matches := REGEX_TRANSCENDENCE.match(top_str):
                         self.transcendence_level = int(matches.group(1))
                         self.transcendence_grade = int(matches.group(2))
                     else:
@@ -163,7 +163,7 @@ class Equipment:
                 elif top_str.startswith("[엘릭서] 지혜의 엘릭서"):
                     for e2 in v["Element_000"]["contentStr"].values():
                         desc = clean(e2["contentStr"])
-                        if matches := re.match(REGEX_ELIXIR_OPTION, desc):
+                        if matches := REGEX_ELIXIR_OPTION.match(desc):
                             self.elixir_effects.append(matches.group(1))
                         else:
                             raise RuntimeError("엘릭서 연성 효과 추출 실패", desc)
@@ -202,7 +202,7 @@ class CharacterInformation:
         for stat in data["ArmoryProfile"]["Stats"]:
             if stat["Type"] == "공격력":
                 for tooltip in stat["Tooltip"]:
-                    if matches := re.match(REGEX_BASE_ATTACK_POINT, clean(tooltip)):
+                    if matches := REGEX_BASE_ATTACK_POINT.match(clean(tooltip)):
                         self.base_attack_point = int(matches.group(1))
                         break
 
@@ -254,7 +254,7 @@ class CharacterInformation:
         if gem_list:
             for gem in gem_list:
                 fullname = clean(gem["Name"])
-                if matches := re.match(REGEX_GEM, fullname):
+                if matches := REGEX_GEM.match(fullname):
                     level = matches.group(1)
                     name = matches.group(2)
                 else:
@@ -282,7 +282,7 @@ class CharacterInformation:
         for effect in data["ArkPassive"]["Effects"]:
             group = effect["Name"]
             desc = clean(effect["Description"])
-            if matches := re.search(REGEX_ARKPASSIVE_NODE, desc):
+            if matches := REGEX_ARKPASSIVE_NODE.search(desc):
                 tier, name, level = (
                     int(matches.group(1)),
                     str(matches.group(2)),
@@ -317,7 +317,7 @@ class CharacterInformation:
             if not desc:
                 continue
 
-            if matches := re.match(REGEX_KARMA, desc):
+            if matches := REGEX_KARMA.match(desc):
                 rank, level = int(matches.group(1)), int(matches.group(2))
             else:
                 raise RuntimeError("카르마 파싱 실패")
