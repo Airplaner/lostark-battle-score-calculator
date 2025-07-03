@@ -184,6 +184,10 @@ class CharacterInformation:
         self._data = data
 
         # stat
+        """
+        캐릭터의 기본 공격력과 최대 생명력
+        다만 만찬과 같은 버프로 인해 부정확한 정보가 설정될 수 있다.
+        """
         # 기본 공격력, 최대 생명력
         for stat in data["ArmoryProfile"]["Stats"]:
             if stat["Type"] == "공격력":
@@ -196,11 +200,15 @@ class CharacterInformation:
                 self.base_health_point = int(stat["Value"])
 
         # level
-        # 전투 레벨
+        """
+        캐릭터의 전투 레벨
+        """
         self.character_level = data["ArmoryProfile"]["CharacterLevel"]
 
         # ArmoryEngraving
-        # 각인
+        """
+        캐릭터의 각인
+        """
         self.engravings: list[Engraving] = []
         for item in data["ArmoryEngraving"]["ArkPassiveEffects"]:
             self.engravings.append(
