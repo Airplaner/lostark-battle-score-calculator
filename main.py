@@ -154,11 +154,11 @@ class BattlePointCalculator:
         result = self.apply(result, coeff, BattlePointType.ARKPASSIVE_LEAP)
 
         # KARMA_EVOLUTIONRANK
-        coeff = d[BattlePointType.KARMA_EVOLUTIONRANK] * char.karma_evolutionrank
+        coeff = d[BattlePointType.KARMA_EVOLUTIONRANK] * char.karma["진화"][0]
         result = self.apply(result, coeff, BattlePointType.KARMA_EVOLUTIONRANK)
 
         # KARMA_LEAPLEVEL:
-        coeff = d.get(BattlePointType.KARMA_LEAPLEVEL, 0) * char.karma_leaplevel
+        coeff = d.get(BattlePointType.KARMA_LEAPLEVEL, 0) * char.karma["도약"][1]
         result = self.apply(result, coeff, BattlePointType.KARMA_LEAPLEVEL)
 
         # ABILITY_ATTACK:
