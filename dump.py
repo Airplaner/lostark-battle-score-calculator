@@ -6,7 +6,7 @@ from decimal import Decimal
 from enum import Enum
 from pathlib import Path
 
-BASE = "F:\loadumps\868\db"
+BASE = "F:\loadumps\869\db"
 
 REGEX_TAG: re.Pattern[str] = re.compile(r"<[^>]+>")
 DICT_BATTLE_STAT = [
