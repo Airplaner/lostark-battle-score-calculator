@@ -25,6 +25,8 @@ REGEX_BASE_ATTACK_POINT = re.compile(
     r"힘, 민첩, 지능과 무기 공격력을 기반으로 증가한 기본 공격력은 (\d+) 입니다."
 )
 
+REGEX_KARMA = re.compile(r"^(\d)랭크 (\d+)레벨$")
+
 
 @dataclass
 class ArkPassiveNode:
@@ -183,6 +185,7 @@ class CharacterInformation:
     card_sets: list[str]
     gems: list[Gem]
     arkpassive_nodes: dict[Literal["진화", "깨달음", "도약"], list[ArkPassiveNode]]
+    karma: dict[Literal["진화", "깨달음", "도약"], tuple[int, int]]  # 랭크, 레벨
 
     def __init__(self, data: dict):
         self._data = data
@@ -288,6 +291,29 @@ class CharacterInformation:
                 )
             )
 
+        """
+        캐릭터 카르마 정보를 아래와 같은 dict으로 설정
+        {
+            진화: (랭크, 레벨),
+        }
+        """
+        self.karma = {
+            "진화": (0, 0),
+            "깨달음": (0, 0),
+            "도약": (0, 0),
+        }
+        for point in data["ArkPassive"]["Points"]:
+            karma_type = point["Name"]
+            desc = point["Description"]
+            if not desc:
+                continue
+
+            if matches := re.match(REGEX_KARMA, desc):
+                rank, level = int(matches.group(1)), int(matches.group(2))
+            else:
+                raise RuntimeError("카르마 파싱 실패")
+            self.karma[karma_type] = rank, level
+
     @property
     def weapon_quality(self) -> int | None:
         """무기 품질"""
@@ -326,40 +352,6 @@ class CharacterInformation:
         else:
             raise ValueError("주어진 문자열이 올바른 포맷이 아닙니다.")
         return tier, name, level
-
-    def parse_arkpassive_points_description(self, str_in: str) -> tuple[int, int]:
-        """
-        ArkPassive.Points.Description인 "6랭크 25레벨" 문자열에서
-        랭크와 레벨을 파싱하여 반환합니다.
-        """
-        matches = re.match(r"(\d+)랭크\s(\d+)레벨", str_in)
-        if matches:
-            return int(matches.group(1)), int(matches.group(2))
-        return 0, 0
-
-    @property
-    def karma_evolutionrank(self) -> int:
-        points = jmespath.search("ArkPassive.Points", self._data)
-        for point in points:
-            if point["Name"] == "진화":
-                rank, level = self.parse_arkpassive_points_description(
-                    point["Description"]
-                )
-                return rank
-
-        raise RuntimeError("진화 카르마 랭크를 찾을 수 없습니다.")
-
-    @property
-    def karma_leaplevel(self) -> int:
-        points = jmespath.search("ArkPassive.Points", self._data)
-        for point in points:
-            if point["Name"] == "도약":
-                rank, level = self.parse_arkpassive_points_description(
-                    point["Description"]
-                )
-                return level
-
-        raise RuntimeError("도약 카르마 레벨을 찾을 수 없습니다.")
 
     @property
     def elixir_set(self) -> str | None:
