@@ -19,7 +19,7 @@ REGEX_TRANSCENDENCE = re.compile(r"\[초월\] (\d+)단계 (\d+)")
 REGEX_ELIXIR_OPTION = re.compile(r"^\[[가-힣]+\] ([가-힣 \(\)]+ Lv\.\d)")
 
 # 8레벨 광휘의 보석
-REGEX_GEM = re.compile(r"(\d+)레벨 ([가-힣]+)의 보석")
+REGEX_GEM = re.compile(r"^(\d+)레벨 (멸화|홍염|겁화|작열|광휘)의 보석")
 
 REGEX_BASE_ATTACK_POINT = re.compile(
     r"힘, 민첩, 지능과 무기 공격력을 기반으로 증가한 기본 공격력은 (\d+) 입니다."
@@ -179,6 +179,9 @@ class CharacterInformation:
     base_attack_point: int  # 기본 공격력
     base_health_point: int  # 최대 생명력
     character_level: int  # 전투 레벨
+    engravings: list[Engraving]
+    card_sets: list[str]
+    gems: list[Gem]
 
     def __init__(self, data: dict):
         self._data = data
@@ -234,6 +237,30 @@ class CharacterInformation:
         if armory_card is not None:
             for effect in armory_card["Effects"]:
                 self.card_sets.append(effect["Items"][-1]["Name"])
+
+        # ArmoryGem
+        """
+        캐릭터가 장착 중인 보석
+        """
+        self.gems: list[Gem] = []
+        gem_list = data["ArmoryGem"]["Gems"]
+        if gem_list:
+            for gem in gem_list:
+                fullname = clean(gem["Name"])
+                print(fullname)
+                if matches := re.match(REGEX_GEM, fullname):
+                    level = matches.group(1)
+                    name = matches.group(2)
+                else:
+                    raise RuntimeError("보석 이름 파싱 실패")
+
+                self.gems.append(
+                    Gem(
+                        name=name,
+                        level=level,
+                        tier=4 if name in ["겁화", "작열", "광휘"] else 3,
+                    )
+                )
 
     @property
     def weapon_quality(self) -> int | None:
@@ -374,28 +401,6 @@ class CharacterInformation:
             obj_equipment.parse(equipment)
             result.append(obj_equipment)
 
-        return result
-
-    @property
-    def gems(self) -> list[Gem]:
-        gem_list = jmespath.search("ArmoryGem.Gems", self._data)
-        if not gem_list:
-            return []
-
-        result = []
-        for gem in gem_list:
-            fullname = clean(gem["Name"])
-            if matches := re.match(REGEX_GEM, fullname):
-                level = matches.group(1)
-                name = matches.group(2)
-
-            result.append(
-                Gem(
-                    name=name,
-                    level=level,
-                    tier=4 if name in ["겁화", "작열", "광휘"] else 3,
-                )
-            )
         return result
 
     @property
