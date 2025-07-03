@@ -21,6 +21,10 @@ REGEX_ELIXIR_OPTION = re.compile(r"^\[[가-힣]+\] ([가-힣 \(\)]+ Lv\.\d)")
 # 8레벨 광휘의 보석
 REGEX_GEM = re.compile(r"(\d+)레벨 ([가-힣]+)의 보석")
 
+REGEX_BASE_ATTACK_POINT = re.compile(
+    r"힘, 민첩, 지능과 무기 공격력을 기반으로 증가한 기본 공격력은 (\d+) 입니다."
+)
+
 
 @dataclass
 class ArkPassiveNode:
@@ -146,47 +150,28 @@ class Gem:
 
 
 class CharacterInformation:
+    base_attack_point: int  # 기본 공격력
+    base_health_point: int  # 최대 생명력
+    character_level: int  # 전투 레벨
+
     def __init__(self, data: dict):
         self._data = data
+
+        # stat
+        for stat in self._data["ArmoryProfile"]["Stats"]:
+            if stat["Type"] == "공격력":
+                for tooltip in stat["Tooltip"]:
+                    if matches := re.match(REGEX_BASE_ATTACK_POINT, clean(tooltip)):
+                        self.base_attack_point = int(matches.group(1))
+                        break
+
+            elif stat["Type"] == "최대 생명력":
+                self.base_health_point = int(stat["Value"])
+
+        # level
+        self.character_level = self._data["ArmoryProfile"]["CharacterLevel"]
+
         return
-
-    @property
-    def base_attack_point(self) -> int:
-        """기본 공격력"""
-        tooltips: list[str] | None = jmespath.search(
-            "ArmoryProfile.Stats[?Type=='공격력'].Tooltip | [0]",
-            self._data,
-        )
-        if tooltips is None:
-            raise RuntimeError("기본 공격력 찾기 실패")
-
-        for tooltip in tooltips:
-            if (
-                "힘, 민첩, 지능과 무기 공격력을 기반으로 증가한 기본 공격력은"
-                in tooltip
-            ):
-                matches = re.search(r"<font[^>]*>(\d+)</font>", tooltip)
-                if matches is not None:
-                    return int(matches.group(1))
-                raise RuntimeError("기본 공격력 찾기 실패")
-
-    @property
-    def base_health_point(self) -> int:
-        """
-        플레이어의 최대 생명력을 반환합니다.
-        XXX 만찬이나 음식, 카제로스 전장판 같은 일시적인 버프가 포함되는 문제가 있음
-        """
-        return int(
-            jmespath.search(
-                "ArmoryProfile.Stats[?Type=='최대 생명력'].Value",
-                self._data,
-            )[0]
-        )
-
-    @property
-    def character_level(self) -> int:
-        """전투 레벨"""
-        return int(jmespath.search("ArmoryProfile.CharacterLevel", self._data))
 
     @property
     def weapon_quality(self) -> int | None:
