@@ -68,7 +68,7 @@ class Engraving:
     def total_level(self) -> int:
         # 종합 레벨은 어빌리티 스톤 레벨x20 + 각인 활성화 수 + 1
         # ex)전설 10권을 읽어서 2단계 활성화했으면 영웅4 + 전설2 = 6
-        total_level = self.ability_stone_level * 20
+        total_level = self.ability_stone_level * 20 + 1
         if self.grade == Grade.유물:
             total_level += 8
         else:
