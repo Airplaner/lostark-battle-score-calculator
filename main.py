@@ -1,11 +1,11 @@
-from decimal import Decimal
 import glob
 import json
-from enum import Enum
 import re
+from decimal import Decimal
+from enum import Enum
 from typing import Any, Literal
 
-from character import CharacterInformation, EquipmentType
+from character import CharacterInformation, Engraving, EquipmentType, Grade
 
 
 def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint.json"):
@@ -163,7 +163,7 @@ class BattlePointCalculator:
 
         # ABILITY_ATTACK:
         for engraving in char.engravings:
-            name, level = engraving
+            name, level = engraving.name, engraving.total_level
             try:
                 coeff = d[BattlePointType.ABILITY_ATTACK][name][str(level)]
             except KeyError:
@@ -173,11 +173,11 @@ class BattlePointCalculator:
 
         # ABILITY_DEFENSE:
         for engraving in char.engravings:
-            name, level = engraving
+            name, level = engraving.name, engraving.total_level
             try:
                 coeff = d[BattlePointType.ABILITY_DEFENSE][name][str(level)]
             except KeyError:
-                coeff = 0
+                coeff = None
 
             result2 = self.apply(result2, coeff, BattlePointType.ABILITY_DEFENSE, name)
 
@@ -507,5 +507,5 @@ for fname in glob.glob("character*.json"):
     print("=" * 100)
     print(fname)
     character_info = CharacterInformation(json.load(open(fname, "rb")))
-    r = calculator.calc(character_info, score_type="defense")
+    r = calculator.calc(character_info, score_type="attack")
     print(r)

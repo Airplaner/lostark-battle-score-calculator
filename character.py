@@ -47,6 +47,32 @@ class EquipmentType(str, Enum):
     팔찌 = "팔찌"
 
 
+class Grade(str, Enum):
+    유물 = "유물"
+    전설 = "전설"
+
+
+@dataclass
+class Engraving:
+    name: str
+    ability_stone_level: int
+    grade: Grade
+    level: int
+
+    @property
+    def total_level(self) -> int:
+        # 종합 레벨은 어빌리티 스톤 레벨x20 + 각인 활성화 수 + 1
+        # ex)전설 10권을 읽어서 2단계 활성화했으면 영웅4 + 전설2 = 6
+        total_level = self.ability_stone_level * 20
+        if self.grade == Grade.유물:
+            total_level += 8
+        else:
+            total_level += 4
+        total_level += self.level
+
+        return total_level
+
+
 StatType: TypeAlias = Literal["치명", "특화", "제압", "신속", "인내", "숙련"]
 
 
@@ -158,7 +184,8 @@ class CharacterInformation:
         self._data = data
 
         # stat
-        for stat in self._data["ArmoryProfile"]["Stats"]:
+        # 기본 공격력, 최대 생명력
+        for stat in data["ArmoryProfile"]["Stats"]:
             if stat["Type"] == "공격력":
                 for tooltip in stat["Tooltip"]:
                     if matches := re.match(REGEX_BASE_ATTACK_POINT, clean(tooltip)):
@@ -169,9 +196,23 @@ class CharacterInformation:
                 self.base_health_point = int(stat["Value"])
 
         # level
-        self.character_level = self._data["ArmoryProfile"]["CharacterLevel"]
+        # 전투 레벨
+        self.character_level = data["ArmoryProfile"]["CharacterLevel"]
 
-        return
+        # ArmoryEngraving
+        # 각인
+        self.engravings: list[Engraving] = []
+        for item in data["ArmoryEngraving"]["ArkPassiveEffects"]:
+            self.engravings.append(
+                Engraving(
+                    name=item["Name"],
+                    ability_stone_level=item["AbilityStoneLevel"]
+                    if item["AbilityStoneLevel"] is not None
+                    else 0,
+                    level=item["Level"],
+                    grade=item["Grade"],
+                )
+            )
 
     @property
     def weapon_quality(self) -> int | None:
@@ -272,42 +313,6 @@ class CharacterInformation:
                 return level
 
         raise RuntimeError("도약 카르마 레벨을 찾을 수 없습니다.")
-
-    @property
-    def engravings(self) -> list[tuple[str, int]]:
-        """
-        플레이어의 모든 각인을 (이름, 종합 레벨) tuple의 list로 반환합니다.
-        """
-        items = jmespath.search("ArmoryEngraving.ArkPassiveEffects", self._data)
-        if not items:
-            return []
-        result = list()
-
-        for item in items:
-            # 종합 레벨은 어빌리티 스톤 레벨x20 + 각인 활성화 수 + 1
-            # ex)전설 10권을 읽어서 2단계 활성화했으면 영웅4 + 전설2 = 6
-            total_level = 1
-
-            ability_stone_level = item["AbilityStoneLevel"]
-            if ability_stone_level is None:
-                ability_stone_level = 0
-            else:
-                ability_stone_level = int(ability_stone_level)
-            total_level += 20 * ability_stone_level
-
-            grade = str(item["Grade"])
-            level = int(item["Level"])
-            name = str(item["Name"])
-
-            total_level += level
-            if grade == "전설":
-                total_level += 4
-            elif grade == "유물":
-                total_level += 8
-
-            result.append((name, total_level))
-
-        return result
 
     @property
     def elixir_set(self) -> str | None:
