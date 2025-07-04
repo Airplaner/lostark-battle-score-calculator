@@ -4,9 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum, StrEnum
 from typing import Any, Literal, TypeAlias
 
-import jmespath
-
-REGEX_KOREAN = r"[가-힣 ]"
+# HTML 태그 지우는 용도
 REGEX_TAG = re.compile(r"<[^>]+>")
 REGEX_IMAGE_TAG = re.compile(r"(?=<img[^>]*><\/img>)")
 REGEX_BR = re.compile(r"<br>", flags=re.IGNORECASE)
@@ -24,10 +22,12 @@ REGEX_ELIXIR_SET = re.compile("연성 추가 효과 ([가-힣 ]+) \((1|2)단계\
 # 8레벨 광휘의 보석
 REGEX_GEM = re.compile(r"^(\d+)레벨 (멸화|홍염|겁화|작열|광휘)의 보석")
 
+# 기본 공격력
 REGEX_BASE_ATTACK_POINT = re.compile(
     r"힘, 민첩, 지능과 무기 공격력을 기반으로 증가한 기본 공격력은 (\d+) 입니다."
 )
 
+# 6랭크 21레벨
 REGEX_KARMA = re.compile(r"^(\d)랭크 (\d+)레벨$")
 KARMA_NOT_OPEN = "미개방"
 
