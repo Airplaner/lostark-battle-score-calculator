@@ -5,7 +5,20 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any, Literal
 
-from character import CharacterInformation, Engraving, EquipmentType, Grade
+from character import CharacterInformation, EquipmentType
+
+EQUIPMENT_TYPE_ARMOR = {
+    EquipmentType.투구,
+    EquipmentType.상의,
+    EquipmentType.어깨,
+    EquipmentType.하의,
+    EquipmentType.장갑,
+}
+EQUIPMENT_TYPE_ACCESSORY = {
+    EquipmentType.목걸이,
+    EquipmentType.귀걸이,
+    EquipmentType.반지,
+}
 
 
 def init_recursive_battle_point_dict(json_file_path: str = "BattlePoint.json"):
@@ -86,14 +99,16 @@ class BattlePointCalculator:
         # BASE_ATTACK_POINT
         # 공격 점수 (서폿의 경우 버프 점수)
         result = d[BattlePointType.BASE_ATTACK_POINT] * char.base_attack_point
-        print("공격 점수", result / Decimal(1000000))
+        if self.verbose:
+            print("공격 점수", result / Decimal(1000000))
 
         # BASE_HEALTH_POINT
         # 서폿 점수 계산할 때만 사용됨, 케어 점수
         result2 = 0
         if score_type == "defense":
             result2 = d[BattlePointType.BASE_HEALTH_POINT] * char.base_health_point
-            print("케어 점수", result2 / Decimal(10000))
+            if self.verbose:
+                print("케어 점수", result2 / Decimal(10000))
 
         # LEVEL
         try:
@@ -192,13 +207,7 @@ class BattlePointCalculator:
         # ELIXIR_GRADE_ATTACK
 
         for equipment in char.equipments:
-            if equipment.equipment_type not in [
-                EquipmentType.투구,
-                EquipmentType.상의,
-                EquipmentType.어깨,
-                EquipmentType.하의,
-                EquipmentType.장갑,
-            ]:
+            if equipment.equipment_type not in EQUIPMENT_TYPE_ARMOR:
                 continue
             for effect in equipment.elixir_effects:
                 coeff = self.find_by_str(effect, d[BattlePointType.ELIXIR_GRADE_ATTACK])
@@ -212,13 +221,7 @@ class BattlePointCalculator:
         # ELIXIR_GRADE_DEFENSE
 
         for equipment in char.equipments:
-            if equipment.equipment_type not in [
-                EquipmentType.투구,
-                EquipmentType.상의,
-                EquipmentType.어깨,
-                EquipmentType.하의,
-                EquipmentType.장갑,
-            ]:
+            if equipment.equipment_type not in EQUIPMENT_TYPE_ARMOR:
                 continue
             for effect in equipment.elixir_effects:
                 coeff = self.find_by_str(
@@ -234,11 +237,7 @@ class BattlePointCalculator:
         # ACCESSORY_GRINDING_ATTACK
 
         for equipment in char.equipments:
-            if equipment.equipment_type not in [
-                EquipmentType.목걸이,
-                EquipmentType.귀걸이,
-                EquipmentType.반지,
-            ]:
+            if equipment.equipment_type not in EQUIPMENT_TYPE_ACCESSORY:
                 continue
 
             for effect in equipment.grinding_effects:
@@ -259,11 +258,7 @@ class BattlePointCalculator:
         # ACCESSORY_GRINDING_DEFENSE
 
         for equipment in char.equipments:
-            if equipment.equipment_type not in [
-                EquipmentType.목걸이,
-                EquipmentType.귀걸이,
-                EquipmentType.반지,
-            ]:
+            if equipment.equipment_type not in EQUIPMENT_TYPE_ACCESSORY:
                 continue
 
             for effect in equipment.grinding_effects:
@@ -284,11 +279,7 @@ class BattlePointCalculator:
         # ACCESSORY_GRINDING_ADDONTYPE_ATTACK
 
         for equipment in char.equipments:
-            if equipment.equipment_type not in [
-                EquipmentType.목걸이,
-                EquipmentType.귀걸이,
-                EquipmentType.반지,
-            ]:
+            if equipment.equipment_type not in EQUIPMENT_TYPE_ACCESSORY:
                 continue
 
             for effect in equipment.grinding_effects:
@@ -373,16 +364,8 @@ class BattlePointCalculator:
         # transcendence_armor
         total_transcendence_grade = 0
         for equipment in char.equipments:
-            if equipment.equipment_type in [
-                EquipmentType.투구,
-                EquipmentType.어깨,
-                EquipmentType.상의,
-                EquipmentType.하의,
-                EquipmentType.장갑,
-                EquipmentType.무기,
-            ]:
-                if equipment.transcendence_level:
-                    total_transcendence_grade += equipment.transcendence_grade
+            if equipment.transcendence_level:
+                total_transcendence_grade += equipment.transcendence_grade
 
         coeff = d[BattlePointType.TRANSCENDENCE_ARMOR] * total_transcendence_grade
         result = self.apply(result, coeff, BattlePointType.TRANSCENDENCE_ARMOR)
