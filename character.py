@@ -26,6 +26,7 @@ REGEX_BASE_ATTACK_POINT = re.compile(
 )
 
 REGEX_KARMA = re.compile(r"^(\d)랭크 (\d+)레벨$")
+KARMA_NOT_OPEN = "미개방"
 
 # 진화 1티어 특화 Lv.30
 REGEX_ARKPASSIVE_NODE = re.compile(r"(\d)티어 ([가-힣A-Z \.\?\!]+) Lv\.(\d+)$")
@@ -316,7 +317,7 @@ class CharacterInformation:
         for point in data["ArkPassive"]["Points"]:
             karma_type = point["Name"]
             desc = point["Description"]
-            if not desc:
+            if not desc or desc == KARMA_NOT_OPEN:
                 continue
 
             if matches := REGEX_KARMA.match(desc):
