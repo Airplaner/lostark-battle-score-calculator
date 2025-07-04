@@ -79,7 +79,8 @@ class Engraving:
         return total_level
 
 
-StatType: TypeAlias = Literal["치명", "특화", "제압", "신속", "인내", "숙련"]
+BattleStatType: TypeAlias = Literal["치명", "특화", "제압", "신속", "인내", "숙련"]
+VALID_BATTLE_STAT_TYPE = {"치명", "특화", "제압", "신속", "인내", "숙련"}
 
 
 def clean(s: str) -> str:
@@ -191,6 +192,7 @@ class CharacterInformation:
     gems: list[Gem]
     arkpassive_nodes: dict[Literal["진화", "깨달음", "도약"], list[ArkPassiveNode]]
     karma: dict[Literal["진화", "깨달음", "도약"], tuple[int, int]]  # 랭크, 레벨
+    battle_stat: dict[BattleStatType, int]
 
     def __init__(self, data: dict):
         self._data = data
@@ -201,15 +203,20 @@ class CharacterInformation:
         다만 만찬과 같은 버프로 인해 부정확한 정보가 설정될 수 있다.
         """
         # 기본 공격력, 최대 생명력
+        self.battle_stat = {}
         for stat in data["ArmoryProfile"]["Stats"]:
-            if stat["Type"] == "공격력":
+            stat_type = stat["Type"]
+            if stat_type == "공격력":
                 for tooltip in stat["Tooltip"]:
                     if matches := REGEX_BASE_ATTACK_POINT.match(clean(tooltip)):
                         self.base_attack_point = int(matches.group(1))
                         break
 
-            elif stat["Type"] == "최대 생명력":
+            elif stat_type == "최대 생명력":
                 self.base_health_point = int(stat["Value"])
+
+            elif stat_type in VALID_BATTLE_STAT_TYPE:
+                self.battle_stat[stat_type] = int(stat["Value"])
 
         # level
         """캐릭터의 전투 레벨"""
@@ -379,14 +386,6 @@ class CharacterInformation:
             obj_equipment.parse(equipment)
             result.append(obj_equipment)
 
-        return result
-
-    @property
-    def battle_stat(self) -> dict[StatType, int]:
-        stats = jmespath.search("ArmoryProfile.Stats", self._data)
-        result = {}
-        for stat in stats:
-            result[stat["Type"]] = int(stat["Value"])
         return result
 
     @property
