@@ -208,9 +208,11 @@ class CharacterInformation:
     def __init__(self, data: dict):
         self._data = data
 
-        # stat
+        #################
+        # ArmoryProfile #
+        #################
         """
-        캐릭터의 기본 공격력과 최대 생명력
+        캐릭터의 기본 공격력, 최대 생명력, 스탯
         다만 만찬과 같은 버프로 인해 부정확한 정보가 설정될 수 있다.
         """
         # 기본 공격력, 최대 생명력
@@ -229,21 +231,31 @@ class CharacterInformation:
             elif stat_type in VALID_BATTLE_STAT_TYPE:
                 self.battle_stat[stat_type] = int(stat["Value"])
 
-        # level
-        """캐릭터의 전투 레벨"""
+        """
+        캐릭터의 전투 레벨
+        """
         self.character_level = data["ArmoryProfile"]["CharacterLevel"]
 
-        """캐릭터의 직업"""
+        """
+        캐릭터의 직업
+        """
         self.character_class_name = data["ArmoryProfile"]["CharacterClassName"]
 
-        # ArmoryEquipment
+        ###################
+        # ArmoryEquipment #
+        ###################
+        """
+        캐릭터의 모든 장비
+        """
         self.equipments: list[Equipment] = []
 
         for equipment in data["ArmoryEquipment"]:
             obj_equipment = Equipment(equipment)
             self.equipments.append(obj_equipment)
 
-        # ArmoryEngraving
+        ###################
+        # ArmoryEngraving #
+        ###################
         """
         캐릭터의 각인
         """
@@ -261,7 +273,9 @@ class CharacterInformation:
                     )
                 )
 
-        # ArmoryCard
+        ##############
+        # ArmoryCard #
+        ##############
         """
         캐릭터에게 적용 중인 카드 세트 목록
         하나의 카트 세트에 여러 효과가 적용 중인 경우에는 가장 마지막 효과만 가져옵니다.
@@ -273,7 +287,9 @@ class CharacterInformation:
             for effect in armory_card["Effects"]:
                 self.card_sets.append(effect["Items"][-1]["Name"])
 
-        # ArmoryGem
+        #############
+        # ArmoryGem #
+        #############
         """
         캐릭터가 장착 중인 보석
         """
@@ -296,7 +312,9 @@ class CharacterInformation:
                     )
                 )
 
-        # ArkPassive
+        ##############
+        # ArkPassive #
+        ##############
         """
         캐릭터의 모든 아크패시브 노드
         """
