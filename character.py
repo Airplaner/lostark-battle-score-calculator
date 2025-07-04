@@ -18,6 +18,9 @@ REGEX_TRANSCENDENCE = re.compile(r"\[초월\] (\d+)단계 (\d+)")
 # [상의] 공격력 Lv.5
 REGEX_ELIXIR_OPTION = re.compile(r"^\[[가-힣]+\] ([가-힣 \(\)]+ Lv\.\d)")
 
+# 연성 추가 효과 칼날 방패 (2단계)
+REGEX_ELIXIR_SET = re.compile("연성 추가 효과 ([가-힣 ]+) \((1|2)단계\)")
+
 # 8레벨 광휘의 보석
 REGEX_GEM = re.compile(r"^(\d+)레벨 (멸화|홍염|겁화|작열|광휘)의 보석")
 
@@ -118,15 +121,17 @@ class Equipment:
     transcendence_level: int | None  # 초월 단계 (7)
     transcendence_grade: int | None  # 초월 등급 (21)
     elixir_effects: list[str]  # 엘릭서 효과
+    elixir_set: tuple[str, int] | None
 
     def __init__(self, d: dict):
         self.equipment_type = d["Type"]
         self.name = d["Name"]
         self.base_effects = list()
         self.grinding_effects = list()
-        self.elixir_effects = list()
         self.transcendence_grade = None
         self.transcendence_level = None
+        self.elixir_effects = list()
+        self.elixir_set = None
         self._parse_tooltip(d["Tooltip"])
 
     def _parse_tooltip(self, str_tooltip: str):
@@ -136,8 +141,7 @@ class Equipment:
             if not e:  # null 제외
                 continue
 
-            t = e["type"]
-            v = e["value"]
+            t, v = e["type"], e["value"]
 
             if not v:  # null 제외
                 continue
@@ -181,8 +185,10 @@ class Equipment:
                             raise RuntimeError("엘릭서 연성 효과 추출 실패", desc)
 
                 elif top_str.startswith("연성 추가 효과"):
-                    # TODO
-                    ...
+                    if matches := REGEX_ELIXIR_SET.match(top_str):
+                        self.elixir_set = matches.group(1), int(matches.group(2))
+                    else:
+                        raise RuntimeError("엘릭서 연성 추가 효과 파싱 실패", top_str)
 
 
 @dataclass
@@ -394,22 +400,12 @@ class CharacterInformation:
         플레이어의 엘릭서 세트 이름과 단계를 하나의 문자열로 반환합니다.
         ex) 회심 2단계
         """
-        elixir_set_name: str | None = None
-        elixir_set_level: int | None = None
-
-        equipments = jmespath.search("ArmoryEquipment", self._data)
-        for equipment in equipments:
-            if equipment["Type"] == "투구" or equipment["Type"] == "장갑":
-                matches = re.search(
-                    rf"({REGEX_KOREAN}+) \(([12])단계\)", equipment["Tooltip"]
-                )
-                if matches:
-                    elixir_set_name = matches.group(1)
-                    elixir_set_level = int(matches.group(2))
-                    break
-
-        if elixir_set_name and elixir_set_level:
-            return f"{elixir_set_name} {elixir_set_level}단계"
+        for equipment in self.equipments:
+            if equipment.equipment_type == EquipmentType.투구:
+                es = equipment.elixir_set
+                if es is None:
+                    return
+                return f"{es[0]} {es[1]}단계"
         return
 
     @property
