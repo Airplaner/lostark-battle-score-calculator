@@ -1,7 +1,7 @@
 import json
 import re
-from dataclasses import dataclass, field
-from enum import Enum
+from dataclasses import dataclass
+from enum import Enum, StrEnum
 from typing import Any, Literal, TypeAlias
 
 import jmespath
@@ -40,17 +40,23 @@ class ArkPassiveNode:
     desc: str  # 설명
 
 
-class EquipmentType(str, Enum):
-    무기 = "무기"
-    투구 = "투구"
-    상의 = "상의"
-    하의 = "하의"
-    장갑 = "장갑"
-    어깨 = "어깨"
-    목걸이 = "목걸이"
-    귀걸이 = "귀걸이"
-    반지 = "반지"
-    팔찌 = "팔찌"
+class EquipmentType(StrEnum):
+    무기 = ("무기", "무기")
+    투구 = ("투구", "방어구")
+    상의 = ("상의", "방어구")
+    하의 = ("하의", "방어구")
+    장갑 = ("장갑", "방어구")
+    어깨 = ("어깨", "방어구")
+    목걸이 = ("목걸이", "장신구")
+    귀걸이 = ("귀걸이", "장신구")
+    반지 = ("반지", "장신구")
+    팔찌 = ("팔찌", "팔찌")
+
+    def __new__(cls, value: str, category: str):
+        obj = str.__new__(cls, value)
+        obj._value_ = value
+        obj.category = category
+        return obj
 
 
 class Grade(str, Enum):
@@ -103,20 +109,24 @@ def split_equipment_effects(str_in: str, regex_split=REGEX_IMAGE_TAG) -> list[st
     return result
 
 
-@dataclass
 class Equipment:
-    name: str = field(init=False)
-    equipment_type: EquipmentType = field(init=False)
-    base_effects: list[str] = field(default_factory=list)  # 기본 효과
-    grinding_effects: list[str] = field(default_factory=list)  # 연마 효과
-    bracelet_effects: list[str] = field(default_factory=list)  # 팔찌 효과
-    transcendence_level: int | None = None  # 7단계
-    transcendence_grade: int | None = None  # 21등급
-    elixir_effects: list[str] = field(default_factory=list)  # 엘릭서 효과
+    name: str
+    equipment_type: EquipmentType
+    base_effects: list[str]  # 기본 효과
+    grinding_effects: list[str]  # 연마 효과
+    bracelet_effects: list[str]  # 팔찌 효과
+    transcendence_level: int | None  # 초월 단계 (7)
+    transcendence_grade: int | None  # 초월 등급 (21)
+    elixir_effects: list[str]  # 엘릭서 효과
 
-    def parse(self, d: dict):
+    def __init__(self, d: dict):
         self.equipment_type = d["Type"]
         self.name = d["Name"]
+        self.base_effects = list()
+        self.grinding_effects = list()
+        self.elixir_effects = list()
+        self.transcendence_grade = None
+        self.transcendence_level = None
         self._parse_tooltip(d["Tooltip"])
 
     def _parse_tooltip(self, str_tooltip: str):
@@ -193,6 +203,7 @@ class CharacterInformation:
     arkpassive_nodes: dict[Literal["진화", "깨달음", "도약"], list[ArkPassiveNode]]
     karma: dict[Literal["진화", "깨달음", "도약"], tuple[int, int]]  # 랭크, 레벨
     battle_stat: dict[BattleStatType, int]
+    equipments: list[Equipment]
 
     def __init__(self, data: dict):
         self._data = data
@@ -224,6 +235,13 @@ class CharacterInformation:
 
         """캐릭터의 직업"""
         self.character_class_name = data["ArmoryProfile"]["CharacterClassName"]
+
+        # ArmoryEquipment
+        self.equipments: list[Equipment] = []
+
+        for equipment in data["ArmoryEquipment"]:
+            obj_equipment = Equipment(equipment)
+            self.equipments.append(obj_equipment)
 
         # ArmoryEngraving
         """
@@ -375,18 +393,6 @@ class CharacterInformation:
         if elixir_set_name and elixir_set_level:
             return f"{elixir_set_name} {elixir_set_level}단계"
         return
-
-    @property
-    def equipments(self) -> list[Equipment]:
-        result = []
-
-        equipments = jmespath.search("ArmoryEquipment", self._data)
-        for equipment in equipments:
-            obj_equipment = Equipment()
-            obj_equipment.parse(equipment)
-            result.append(obj_equipment)
-
-        return result
 
     @property
     def arkpassive_available_points(
