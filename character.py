@@ -1,6 +1,6 @@
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, StrEnum
 from typing import Any, Literal, TypeAlias
 
@@ -44,6 +44,7 @@ class ArkPassiveNode:
 
 
 class EquipmentType(StrEnum):
+    NA = ("NA", "NA")
     무기 = ("무기", "무기")
     투구 = ("투구", "방어구")
     상의 = ("상의", "방어구")
@@ -112,27 +113,26 @@ def split_equipment_effects(str_in: str, regex_split=REGEX_IMAGE_TAG) -> list[st
     return result
 
 
+@dataclass
 class Equipment:
-    name: str
-    equipment_type: EquipmentType
-    base_effects: list[str]  # 기본 효과
-    grinding_effects: list[str]  # 연마 효과
-    bracelet_effects: list[str]  # 팔찌 효과
-    transcendence_level: int | None  # 초월 단계 (7)
-    transcendence_grade: int | None  # 초월 등급 (21)
-    elixir_effects: list[str]  # 엘릭서 효과
-    elixir_set: tuple[str, int] | None
+    raw_data: dict | None = field(default=None, repr=False)
+    name: str = ""
+    equipment_type: EquipmentType = field(default=EquipmentType.NA)
+    quality: int = -1  # 품질이 없는 어빌스톤, 팔찌 등
+    base_effects: list[str] = field(default_factory=list)  # 기본 효과
+    additional_effects: list[str] = field(default_factory=list)  # 추가 효과
+    grinding_effects: list[str] = field(default_factory=list)  # 연마 효과
+    bracelet_effects: list[str] = field(default_factory=list)  # 팔찌 효과
+    transcendence_level: int | None = None  # 초월 단계 (7)
+    transcendence_grade: int | None = None  # 초월 등급 (21)
+    elixir_effects: list[str] = field(default_factory=list)  # 엘릭서 효과
+    elixir_set: tuple[str, int] | None = None
 
-    def __init__(self, d: dict):
-        self.equipment_type = d["Type"]
-        self.name = d["Name"]
-        self.base_effects = list()
-        self.grinding_effects = list()
-        self.transcendence_grade = None
-        self.transcendence_level = None
-        self.elixir_effects = list()
-        self.elixir_set = None
-        self._parse_tooltip(d["Tooltip"])
+    def __post_init__(self):
+        if self.raw_data:
+            self.name = self.raw_data["Name"]
+            self.equipment_type = self.raw_data["Type"]
+            self._parse_tooltip(self.raw_data["Tooltip"])
 
     def _parse_tooltip(self, str_tooltip: str):
         tooltip: dict = json.loads(str_tooltip)
@@ -146,7 +146,10 @@ class Equipment:
             if not v:  # null 제외
                 continue
 
-            if t == "ItemPartBox":
+            if t == "ItemTitle":
+                self.quality = int(v["qualityValue"])
+
+            elif t == "ItemPartBox":
                 # Element_000에는 효과의 종류 (기본 효과, 연마 효과 등)
                 # Element_001에는 효과 내용들
                 effect_type = clean(e["value"]["Element_000"])
@@ -160,6 +163,8 @@ class Equipment:
                         self.grinding_effects = split_equipment_effects(effect_desc)
                     case "팔찌 효과":
                         self.bracelet_effects = split_equipment_effects(effect_desc)
+                    case "추가 효과":
+                        self.additional_effects = split_equipment_effects(effect_desc)
                     case _:
                         ...
                         # print("이게멀까요?", effect_type)
@@ -256,7 +261,7 @@ class CharacterInformation:
         self.equipments: list[Equipment] = []
 
         for equipment in data["ArmoryEquipment"]:
-            obj_equipment = Equipment(equipment)
+            obj_equipment = Equipment(raw_data=equipment)
             self.equipments.append(obj_equipment)
 
         ###################
@@ -378,21 +383,9 @@ class CharacterInformation:
     @property
     def weapon_quality(self) -> int | None:
         """무기 품질"""
-        # TODO
-        # 군단장 무기 부터 품질 100이 추가 피해 30%이라 이 부분 검사 필요
-        tooltips = jmespath.search("ArmoryEquipment[?Type=='무기'].Tooltip", self._data)
-        if not tooltips:
-            return None
-            raise ValueError("무기를 장착하지 않았습니다.")
-
-        # 장비 툴팁은 json string이므로 load
-        dict_tooltip: dict[str, Any] = json.loads(tooltips[0])
-        for element in dict_tooltip:
-            if result := jmespath.search("value.qualityValue", dict_tooltip[element]):
-                return result
-
-        return None
-        raise RuntimeError("무기 품질 찾기 실패")
+        for equipment in self.equipments:
+            if equipment.equipment_type == EquipmentType.무기:
+                return equipment.quality
 
     @property
     def elixir_set(self) -> str | None:
